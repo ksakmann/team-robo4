@@ -47,9 +47,8 @@ class DBWNode(object):
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
 
         self.speed = 0
-        self.speed_timestamp = 0
         self.yaw_rate = 0
-        self.yaw_rate_timestamp = 0
+        self.rate = 50 # DBW node rate (Hz)
 
         self.steer_pub    = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=1)
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
@@ -65,11 +64,12 @@ class DBWNode(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(50) # 50Hz
+        rate = rospy.Rate(self.rate) # 50Hz
         while not rospy.is_shutdown():
 
-            throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, self.speed_timestamp)
-            steer = self.yaw_rate_controller.control(self.yaw_rate_demand, self.yaw_rate, self.yaw_rate_timestamp)
+            # Can we assume the sampling time is constant? Or do we need to calculated the time elapsed since last exec?
+            throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, 1./self.rate)
+            steer = self.yaw_rate_controller.control(self.yaw_rate_demand, self.yaw_rate, 1./self.rate)
 
             # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
             # if self.dbw_enabled:
@@ -99,13 +99,12 @@ class DBWNode(object):
     
     def speed_cb(self, msg):
         self.speed = msg.twist.linear.x
-        self.speed_timestamp = msg.header.stamp
+
 
     def pose_cb(self, msg):
         # Extract yaw_rate from successive quaternion?
         # self.yaw_rate = 0
         self.yaw_rate = 0
-        self.yaw_rate_timestamp = msg.header.stamp
 
 
     # def dbw_enabled_cb(self, msg):
