@@ -3,7 +3,7 @@
 import rospy
 from std_msgs.msg import Bool
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
-from geometry_msgs.msg import TwistStamped
+from geometry_msgs.msg import TwistStamped, PoseStomped
 import math
 
 from twist_controller import Controller
@@ -50,31 +50,30 @@ class DBWNode(object):
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
         self.brake_pub    = rospy.Publisher('/vehicle/brake_cmd'   , BrakeCmd   , queue_size=1)
 
-        self.curr_vel_sub    = rospy.Subscriber('/current_velocity'   , TYPE, self.current_velocity_cb)
-        self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', TYPE, self.dbw_enabled_cb)
-        self.twist_cmd_sub   = rospy.Subscriber('/twist_cmd'          , SteeringCmd, self.steer_cb)
-        
-
+        self.speed_sub       = rospy.Subscriber('/current_velocity'   , TwistStamped, self.speed_cb)
+        self.pose_sub        = rospy.Subscriber('/current_pose'       , PoseStamped , self.pose_cb)
+        self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
+        self.twist_cmd_sub   = rospy.Subscriber('/twist_cmd'          , TwistStamped, self.twist_cmd_cb)
+    
         # TODO: Create `TwistController` object
         # self.controller = TwistController(<Arguments you wish to provide>)
 
-        # TODO: Subscribe to all the topics you need to
-
+        self.speed_controller = SpeedContoller()
+        self.yaw_rate_controller = SteerController()
         self.loop()
 
     def loop(self):
         rate = rospy.Rate(50) # 50Hz
         while not rospy.is_shutdown():
-            # TODO: Get predicted throttle, brake, and steering using `twist_controller`
-            # You should only publish the control commands if dbw is enabled
-            # throttle, brake, steering = self.controller.control(<proposed linear velocity>,
-            #                                                     <proposed angular velocity>,
-            #                                                     <current linear velocity>,
-            #                                                     <dbw status>,
-            #                                                     <any other argument you need>)
-            # if <dbw is enabled>:
-            #   self.publish(throttle, brake, steer)
+            throttle_brake = self.speed_controller(speed_demand, self.speed)
+            steer = self.yaw_rate_controller(yaw_rate_demand, self.yaw_rate)
+
+            # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
+            if self.dbw_enabled:
+                self.publish(throttle, brake, steer)
+
             rate.sleep()
+
 
     def publish(self, throttle, brake, steer):
         tcmd = ThrottleCmd()
@@ -94,6 +93,23 @@ class DBWNode(object):
         bcmd.pedal_cmd = brake
         self.brake_pub.publish(bcmd)
 
+    
+    def speed_cb(self, msg):
+        self.speed = msg.twist.linear.x
 
+    def pose_cb(self, msg):
+        # Extract yaw_rate from successive quaternion?
+        self.yaw_rate = 0
+
+
+    def dbw_enabled_cb(self, msg):
+        self.dbw_enabled = msg
+
+    
+    def twist_cmd_cb(self, msg):
+        self.speed_demand = msg.twist.linear.x # m/s
+        self.yaw_rate_demand = msg.twist.angular.z # rad/s
+        
+    
 if __name__ == '__main__':
     DBWNode()
