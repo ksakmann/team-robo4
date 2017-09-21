@@ -3,12 +3,23 @@ GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 
 
-class Controller(object):
-    def __init__(self, *args, **kwargs):
-        # TODO: Implement
-        pass
+class SpeedController(object):
+    def __init__(self):
+        kp = 0
+        ki = 0
+        kd = 0
+        is_initialized = False # TODO Implement intialization (handle dt)
+        self.pid = pid(kp, ki, kd, min=-1, max=1)
 
-    def control(self, *args, **kwargs):
-        # TODO: Change the arg, kwarg list to suit your needs
-        # Return throttle, brake, steer
-        return 1., 0., 0.
+    def control(self, demand, current, time_step):
+        error = demand - current
+        val = self.pid.step(error, time_step)
+        
+        if val > 0:
+            throttle = val
+            brake = 0
+        else:
+            throttle = 0
+            brake = -val * self.brake_torque_gain 
+
+        return throttle, brake

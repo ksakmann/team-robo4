@@ -46,17 +46,19 @@ class DBWNode(object):
         max_lat_accel   = rospy.get_param('~max_lat_accel'  , 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
 
+        self.speed = 0
+        self.speed_timestamp = 0
+        self.yaw_rate = 0
+        self.yaw_rate_timestamp = 0
+
         self.steer_pub    = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=1)
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
         self.brake_pub    = rospy.Publisher('/vehicle/brake_cmd'   , BrakeCmd   , queue_size=1)
 
         self.speed_sub       = rospy.Subscriber('/current_velocity'   , TwistStamped, self.speed_cb)
         self.pose_sub        = rospy.Subscriber('/current_pose'       , PoseStamped , self.pose_cb)
-        self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
+        # self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
         self.twist_cmd_sub   = rospy.Subscriber('/twist_cmd'          , TwistStamped, self.twist_cmd_cb)
-    
-        # TODO: Create `TwistController` object
-        # self.controller = TwistController(<Arguments you wish to provide>)
 
         self.speed_controller = SpeedContoller()
         self.yaw_rate_controller = SteerController()
@@ -65,12 +67,13 @@ class DBWNode(object):
     def loop(self):
         rate = rospy.Rate(50) # 50Hz
         while not rospy.is_shutdown():
-            throttle_brake = self.speed_controller(speed_demand, self.speed)
-            steer = self.yaw_rate_controller(yaw_rate_demand, self.yaw_rate)
+
+            throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, self.speed_timestamp)
+            steer = self.yaw_rate_controller.control(self.yaw_rate_demand, self.yaw_rate, self.yaw_rate_timestamp)
 
             # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
-            if self.dbw_enabled:
-                self.publish(throttle, brake, steer)
+            # if self.dbw_enabled:
+            self.publish(throttle, brake, steer)
 
             rate.sleep()
 
@@ -96,20 +99,23 @@ class DBWNode(object):
     
     def speed_cb(self, msg):
         self.speed = msg.twist.linear.x
+        self.speed_timestamp = msg.header.stamp
 
     def pose_cb(self, msg):
         # Extract yaw_rate from successive quaternion?
+        # self.yaw_rate = 0
         self.yaw_rate = 0
+        self.yaw_rate_timestamp = msg.header.stamp
 
 
-    def dbw_enabled_cb(self, msg):
-        self.dbw_enabled = msg
+    # def dbw_enabled_cb(self, msg):
+    #     self.dbw_enabled = msg
 
     
     def twist_cmd_cb(self, msg):
         self.speed_demand = msg.twist.linear.x # m/s
         self.yaw_rate_demand = msg.twist.angular.z # rad/s
-        
+
     
 if __name__ == '__main__':
     DBWNode()

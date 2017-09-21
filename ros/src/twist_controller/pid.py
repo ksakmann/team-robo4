@@ -23,15 +23,16 @@ class PID(object):
         integral = self.int_val + error * sample_time;
         derivative = (error - self.last_error) / sample_time;
 
-        y = self.kp * error + self.ki * self.int_val + self.kd * derivative;
-        val = max(self.min, min(y, self.max))
+        val = self.kp * error + self.ki * self.int_val + self.kd * derivative;
 
+        # TODO Implement anti-windup
         if val > self.max:
             val = self.max
         elif val < self.min:
             val = self.min
         else:
             self.int_val = integral
+
         self.last_error = error
 
         return val
