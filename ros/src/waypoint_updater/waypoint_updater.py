@@ -145,7 +145,6 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        # TODO: Callback for /traffic_waypoint message. Implement
         self.tw_id = msg
         v0 = get_waypoint_velocity(self.base_waypoints.waypoints[self.near_id])
 
