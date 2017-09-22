@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import rospy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 
-import math
+import math, tf
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -21,12 +21,12 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
 
 
 class WaypointUpdater(object):
     def __init__(self):
-        rospy.init_node('waypoint_updater')
+        rospy.init_node('waypoint_updater', log_level=rospy.WARN)
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -48,15 +48,100 @@ class WaypointUpdater(object):
         self.base_waypoints = Lane()
         self.final_waypoints = Lane()
 
-        rospy.spin()
+        self.x = None
+        self.y = None
+        self.z = None  # z seems to be always zero for all base waypoints
+        self.orientation = None
+        self.roll = None
+        self.pitch = None
+        self.yaw = None  # the orientation in the plane z = 0 (phi)
+        self.waypoints = None
+        self.no_waypoints = None
+        self.closest = None
+        self.target_velocity = 10.0
+
+        # standard loop to publish data from ros pub/sub tutorial
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+
+            lane = self.get_next_waypoints()
+            if lane is not None:
+                self.final_waypoints_pub.publish(lane)
+
+            rate.sleep()
 
     def pose_cb(self, msg):
-        # TODO: Implement
-        pass
 
-    def waypoints_cb(self, waypoints):
-        # TODO: Implement
-        pass
+        self.x = msg.pose.position.x
+        self.y = msg.pose.position.y
+        self.z = msg.pose.position.z
+
+        # Note on quaternions: https://answers.ros.org/question/69754/quaternion-transformations-in-python/
+        self.orientation = msg.pose.orientation
+        quaternion = [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]
+        self.roll, self.pitch, self.yaw = tf.transformations.euler_from_quaternion(quaternion)
+        rospy.logwarn('pose : %s, %s, %s', self.x, self.y, self.z)
+
+    def get_next_waypoints(self):
+
+        self.get_closest_waypoint_index()
+        ind = self.closest
+
+        if self.yaw is None or self.waypoints is None or ind is None:
+            rospy.logwarn('yaw,closest : %s, %s', self.yaw, self.closest)
+            return
+
+        wp = self.waypoints[ind]
+        xpp,_ = self.get_local_coordinates(wp)
+
+        if xpp < 0:
+            ind = (ind + 1) % self.no_waypoints
+
+        lane = Lane()
+        for i in range(LOOKAHEAD_WPS):
+            lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
+
+        rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
+        return lane
+
+
+
+    def get_local_coordinates(self,wp):
+        # Two trafos  like in MPC project
+        # 1. shift
+        x,y = wp.pose.pose.position.x,wp.pose.pose.position.y
+        xp,yp = x-self.x,y-self.y
+
+        # 2. rotation
+        # coordinates transform inversely to basis vectors when the rotation is +yaw
+        xpp = math.cos(self.yaw) * xp + math.sin(self.yaw) * yp
+        ypp = -math.sin(self.yaw) * xp + math.cos(self.yaw) * yp
+
+        return xpp,ypp
+
+
+    def get_closest_waypoint_index(self):
+
+        rospy.logwarn('x,y : %s, %s ', self.x, self.y)
+
+        if self.x is None or self.y is None or self.waypoints is None:
+            return
+
+        distance = 1E10
+        self.closest = -1000
+        for ind, wp in enumerate(self.waypoints):
+            wp_distance = math.sqrt((self.x - wp.pose.pose.position.x) ** 2 \
+                                    + (self.y - wp.pose.pose.position.y) ** 2 \
+                                    + (self.z - wp.pose.pose.position.z) ** 2)
+            if wp_distance < distance:
+                distance = wp_distance
+                self.closest = ind
+        rospy.logwarn('closest : %s, %s ', self.waypoints[self.closest].pose.pose.position.x,
+                      self.waypoints[self.closest].pose.pose.position.y)
+
+    def waypoints_cb(self, msg):
+        self.waypoints = msg.waypoints
+        self.no_waypoints = len(msg.waypoints)
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
@@ -102,10 +187,11 @@ class WaypointUpdater(object):
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
 
+        # TODO: is there any use for this? Returns distance between waypoints indexed wp1 and wp2
     def distance(self, waypoints, wp1, wp2):
         dist = 0
-        dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
-        for i in range(wp1, wp2+1):
+        dl = lambda a, b: math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2)
+        for i in range(wp1, wp2 + 1):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
