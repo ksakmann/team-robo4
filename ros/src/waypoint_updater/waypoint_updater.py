@@ -42,9 +42,8 @@ class WaypointUpdater(object):
         self.ow_id = 0
         
         self.accel_limit = 4.0 # m/sec^2
-
-        self.base_waypoints = Lane()
-        self.final_waypoints = Lane()
+	
+	self.final_waypoints = Lane
 
         self.x = None
         self.y = None
@@ -59,15 +58,17 @@ class WaypointUpdater(object):
 	self.target_velocity = 10.0 * 0.44704	# target velocity is 10mph. in our unit, m/sec
 
         # standard loop to publish data from ros pub/sub tutorial
-	#rate = rospy.Rate(10)
-        #while not rospy.is_shutdown():
+	rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+	
+            # lane = self.get_next_waypoints()
+	    self.get_next_waypoints()
+            # if lane is not None:
+	    if self.final_waypoints is not None:
+                self.final_waypoints_pub.publish(self.final_waypoints)
 
-        #    lane = self.get_next_waypoints()
-        #    if lane is not None:
-        #        self.final_waypoints_pub.publish(lane)
-
-        #    rate.sleep()
-	rospy.spin()
+            rate.sleep()
+	# rospy.spin()
 
     def pose_cb(self, msg):
 
@@ -96,12 +97,13 @@ class WaypointUpdater(object):
         if xpp < 0:
             ind = (ind + 1) % self.no_waypoints
 
-        lane = Lane()
+        # lane = Lane()
         for i in range(LOOKAHEAD_WPS):
-            lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
+            #lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
+	    self.final_waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
 
         rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
-        return lane
+        # return lane
 
 
 
@@ -145,11 +147,11 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
         self.tw_id = msg
-        v0 = get_waypoint_velocity(self.base_waypoints.waypoints[self.closest])
+        v0 = get_waypoint_velocity(self.waypoints[self.closest])
 
         if self.tw_id != -1:
             # compute distance from current position to red tl.
-            d = self.distance(self.base_waypoints, self.closest, self.tw_id)
+            d = self.distance(self.waypoints, self.closest, self.tw_id)
 
             # solve the quadratic equation.
             qe = lambda a,b c: (math.srqt(b*b + 4*a*c) - b) /2/a
