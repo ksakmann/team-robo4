@@ -32,11 +32,21 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-
+        rospy.Subscriber('/traffic_waypoint', Lane, self.traffic_cb)
+        rospy.Subscriber('/obstacle_waypoint', Lane, self.obstacle_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
+	        self.near_id = 0
+        self.tw_id = 0
+        self.ow_id = 0
+        # target velocity is 10mph. in our unit, m/sec
+        self.target_velocity = 10 * 0.44704
+        self.accel_limit = 4.0 #m/sec^2
+
+        self.base_waypoints = Lane()
+        self.final_waypoints = Lane()
 
         rospy.spin()
 
@@ -50,11 +60,41 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        # TODO: Callback for /traffic_waypoint message. Implement
+        self.tw_id = msg
+        v0 = get_waypoint_velocity(self.base_waypoints.waypoints[self.near_id])
+
+        if self.tw_id != -1:
+            # compute distance from current position to red tl.
+            d = self.distance(self.base_waypoints, self.near_id, self.tw_id)
+
+            # solve the quadratic equation.
+            qe = lambda a,b c: (math.srqt(b*b + 4*a*c) - b) /2/a
+
+            if chk_stp(v0, d):  #check whether or not can stop.
+                for i, wp in enumerate(self.final_waypoints.waypoints):
+                    # distance from near_id to the point where set the vehicle speed this time.
+                    d_int = d / (self.tw_id - self.near_id - i)
+                    decel = v0 * v0 /2/d
+                    # Solve the quadratic equation to find the time required to travel
+                    # a certain distance.
+                    delta_t = qe(decel/2, v0, d_int)
+                    set_v = max(v0 - decel * delta_t, 0)
+                    set_waypoint_velocity(wp, i, set_v)
+
+        else:
+            # Accelerate to set speed.
+            for i, wp in enumerate(self.final_waypoints.waypoints):
+
+                d = self.distance(self.base_waypoints, self.near_id, self.near_id + i)
+                delta_t = qe(self.accel_limit, v0, d_int)
+                set_v = min(self.target_velocity, v0 + self.accel_limit * delta_t)
+                set_waypoint_velocity(wp, i, set_v)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
-        pass
+        self.ow_id = msg
+	# TODO: Implement code to stop before the obstacle. Almost the same as traffic_cb?!
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
