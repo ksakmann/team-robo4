@@ -59,14 +59,15 @@ class WaypointUpdater(object):
 	self.target_velocity = 10.0 * 0.44704	# target velocity is 10mph. in our unit, m/sec
 
         # standard loop to publish data from ros pub/sub tutorial
-        rate = rospy.Rate(10)
-        while not rospy.is_shutdown():
+	#rate = rospy.Rate(10)
+        #while not rospy.is_shutdown():
 
-            lane = self.get_next_waypoints()
-            if lane is not None:
-                self.final_waypoints_pub.publish(lane)
+        #    lane = self.get_next_waypoints()
+        #    if lane is not None:
+        #        self.final_waypoints_pub.publish(lane)
 
-            rate.sleep()
+        #    rate.sleep()
+	rospy.spin()
 
     def pose_cb(self, msg):
 
