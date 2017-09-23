@@ -145,38 +145,57 @@ class WaypointUpdater(object):
             v0 = self.get_waypoint_velocity(self.waypoints[self.closest])
 	else:
 	    v0 = self.target_velocity
+
 	rospy.logwarn('traffic_waypoint: %s', self.tw_id)
+	rospy.logwarn('closest index: %s', self.closest)
+	rospy.logwarn('initial v: %s', v0)
 	
 	# solve the quadratic equation.
-        qe = lambda a,b,c: (math.sqrt(b*b + 4*a*c) - b) /2/a
-	
-        if self.tw_id != -1:
-            # compute distance from current position to red tl.
-            d = self.distance(self.waypoints, self.closest, self.tw_id)
-	    rospy.logwarn('tl distance: %s', d)
+        qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
 
-            if self.chk_stp(v0, d):  #check whether or not can stop.
+	if self.final_waypoints is not None:
+            if self.tw_id != -1:
+                # compute distance from current position to red tl.
+                d = self.distance(self.waypoints, self.closest, self.tw_id)
+	        rospy.logwarn('tl distance: %s', d)
+
+                if self.chk_stp(v0, d):  #check whether or not can stop.
+		    # set deceleration value.
+		    if d != 0:
+		        decel = v0 * v0 /2/d
+		    else:
+		        decel = 0
+		    rospy.logwarn('deceleration: %s', decel)
+
+                    for i in range(len(self.final_waypoints.waypoints)):
+                        # distance from closest id to the point where set the vehicle speed this time.
+		        if (self.tw_id - self.closest != 0):
+                            d_int = d / (self.tw_id - self.closest) * i
+		        else:
+			    d_int = 0
+                            
+                        # Solve the quadratic equation to find the time required to travel
+                        # a certain distance.
+		        if ((decel != 0) & (d_int <= d)):
+                            delta_t = qe(-decel/2, v0, -d_int)
+                            set_v = max(v0 - decel * delta_t, 0)
+                            self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+		        else:
+			    set_v = 0
+			rospy.logwarn('index: %s, set v: %s', i, set_v)
+		        self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+
+            else:
+                # Accelerate to set speed.
                 for i in range(len(self.final_waypoints.waypoints)):
-                    # distance from near_id to the point where set the vehicle speed this time.
-                    d_int = d / (self.tw_id - self.closest - i)
-                    decel = v0 * v0 /2/d
-                    # Solve the quadratic equation to find the time required to travel
-                    # a certain distance.
-                    delta_t = qe(decel/2, v0, d_int)
-                    set_v = max(v0 - decel * delta_t, 0)
+
+                    d_int = self.distance(self.waypoints, self.closest, self.closest + i)
+                    delta_t = qe(self.accel_limit/2, v0, -d_int)
+                    set_v = min(self.target_velocity, v0 + self.accel_limit * delta_t)
                     self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
-
-        else:
-            # Accelerate to set speed.
-            for i in range(len(self.final_waypoints.waypoints)):
-
-                d_int = self.distance(self.waypoints, self.closest, self.closest + i)
-                delta_t = qe(self.accel_limit, v0, d_int)
-                set_v = min(self.target_velocity, v0 + self.accel_limit * delta_t)
-                self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
-	rospy.logwarn('set tl v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id]))
-	if self.tw_id != -1:
-	    rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id]))
+	    rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[0]))
+	    if ((self.tw_id != -1) & (self.tw_id > self.closest)):
+	        rospy.logwarn('set tl v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id - self.closest]))
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -189,7 +208,7 @@ class WaypointUpdater(object):
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
 
-        # TODO: is there any use for this? Returns distance between waypoints indexed wp1 and wp2
+        # TODO: Returns distance between waypoints indexed wp1 and wp2
     def distance(self, waypoints, wp1, wp2):
         dist = 0
         dl = lambda a, b: math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2)
@@ -197,6 +216,17 @@ class WaypointUpdater(object):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
+
+    # utility.
+    # Determine whether or not we can stop under the limit deceleration.
+    def chk_stp(self, v_init, dist):
+        stp_t = v_init / self.accel_limit
+        d_stp = v_init * stp_t - self.accel_limit * stp_t * stp_t / 2
+
+        if d_stp>dist:
+            return False
+        else:
+            return True
 
 
 if __name__ == '__main__':
