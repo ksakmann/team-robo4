@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -100,8 +101,45 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        #TODO implement
-        return 0
+        #TODO implement - Done
+        # Iterate the base_waypoints' x value with current position's x value and find the closest
+        # match, and pick that waypoint location index.  
+        min_idx = 0
+        min_dist = None
+        cur_x = pose.position.x
+        cur_y = pose.position.y
+        if self.waypoints is not None:
+            for i, wp in enumerate(self.waypoints.waypoints):
+                wp_x = wp.pose.pose.position.x
+                wp_y = wp.pose.pose.position.y
+                dist = np.sqrt((cur_x - wp_x)**2 + (cur_y - wp_y)**2)
+                if min_dist is None or min_dist >= dist:
+                    min_dist = dist
+                    min_idx = i
+        
+        # check whether the identified index is behind the current position, if so, move it by 1 index
+        # https://gamedev.stackexchange.com/questions/75072/how-can-i-compare-two-quaternions-for-logical-equality
+        eps = 1e-12
+        if self.waypoints is not None:
+            q1 = self.waypoints.waypoints[min_idx].pose.pose.orientation
+            q2 = pose.orientation
+            q1_a = np.array([q1.x, q1.y, q1.z, q1.w])
+            q2_a = np.array([q2.x, q2.y, q2.z, q2.w])
+            direction = abs(np.dot(q1_a, q2_a))
+            rospy.logwarn('calculated direction %f', direction)
+            wp_x = self.waypoints.waypoints[min_idx].pose.pose.position.x
+            if direction > 1-eps:
+                if wp_x < cur_x:
+                    min_idx += 1
+                else:
+                    min_idx -= 1
+            else:
+                if wp_x < cur_x:
+                    min_idx -= 1
+                else:
+                    min_idx += 1
+
+        return min_idx
 
 
     def project_to_image_plane(self, point_in_world):
