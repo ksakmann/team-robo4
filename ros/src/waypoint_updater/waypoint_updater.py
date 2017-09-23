@@ -134,7 +134,7 @@ class WaypointUpdater(object):
                 distance = wp_distance
                 self.closest = ind
         rospy.logwarn('closest : %s, %s ', self.waypoints[self.closest].pose.pose.position.x,
-                      self.waypoints[self.closest].pose.pose.position.y)
+                     self.waypoints[self.closest].pose.pose.position.y)
 
     def waypoints_cb(self, msg):
         self.waypoints = msg.waypoints
@@ -149,9 +149,9 @@ class WaypointUpdater(object):
 	else:
 	    v0 = self.target_velocity
 
-	# rospy.logwarn('traffic_waypoint: %s', self.tw_id)
-	# rospy.logwarn('closest index: %s', self.closest)
-	# rospy.logwarn('initial v: %s', v0)
+	rospy.logwarn('traffic_waypoint: %s', self.tw_id)
+	rospy.logwarn('closest index: %s', self.closest)
+	rospy.logwarn('initial v: %s', v0)
 	
 	# solve the quadratic equation.
         qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a

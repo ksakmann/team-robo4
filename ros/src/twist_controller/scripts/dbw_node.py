@@ -56,12 +56,13 @@ class DBWNode(object):
         self.yaw_rate = 0
         self.yaw_rate_demand = 0
         self.rate = 50 # DBW node rate (Hz)
+	self.dbw_enabled = False
 
         self.steer_pub    = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=5)
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=5)
         self.brake_pub    = rospy.Publisher('/vehicle/brake_cmd'   , BrakeCmd   , queue_size=5)
 
-        # self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
+        self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
         self.speed_sub     = rospy.Subscriber('/current_velocity', TwistStamped, self.speed_cb)
         self.twist_cmd_sub = rospy.Subscriber('/twist_cmd'       , TwistStamped, self.twist_cmd_cb)
 
@@ -84,10 +85,10 @@ class DBWNode(object):
             steer = self.yaw_rate_controller.control(self.speed_demand, self.yaw_rate_demand)
 
             # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
-            # if self.dbw_enabled:
-            rospy.loginfo('Speed Demand: %f, Speed Actual: %f', self.speed_demand, self.speed)
-            rospy.loginfo('Yaw Rate Demand: %f, Yaw Rate Actual: %f', self.yaw_rate_demand, self.yaw_rate)
-            self.publish(throttle, brake, steer)
+            if self.dbw_enabled:
+                rospy.loginfo('Speed Demand: %f, Speed Actual: %f', self.speed_demand, self.speed)
+                rospy.loginfo('Yaw Rate Demand: %f, Yaw Rate Actual: %f', self.yaw_rate_demand, self.yaw_rate)
+                self.publish(throttle, brake, steer)
 
             rate.sleep()
 
@@ -121,7 +122,7 @@ class DBWNode(object):
         
 
     def dbw_enabled_cb(self, msg):
-        self.dbw_enabled = msg
+        self.dbw_enabled = msg.data
     
 
     def twist_cmd_cb(self, msg):
