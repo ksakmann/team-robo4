@@ -56,7 +56,7 @@ class WaypointUpdater(object):
         self.waypoints = None
         self.no_waypoints = None
         self.closest = None	# closest waypoint index to current position.
-	self.target_velocity = 10.0 * 0.44704	# target velocity is 10mph. in our unit, m/sec
+	self.target_velocity = 10.0	# target velocity is 10m/sec
 
 	rospy.spin()
 
@@ -70,7 +70,7 @@ class WaypointUpdater(object):
         self.orientation = msg.pose.orientation
         quaternion = [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]
         self.roll, self.pitch, self.yaw = tf.transformations.euler_from_quaternion(quaternion)
-        rospy.logwarn('pose : %s, %s, %s', self.x, self.y, self.z)
+        # rospy.logwarn('pose : %s, %s, %s', self.x, self.y, self.z)
 	
 	# if self.tw_id == -1:
 	#     self.final_waypoints = self.get_next_waypoints()
@@ -98,7 +98,7 @@ class WaypointUpdater(object):
         for i in range(LOOKAHEAD_WPS):
             lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
 
-        rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
+        # rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
         return lane
 
 
@@ -119,7 +119,7 @@ class WaypointUpdater(object):
 
     def get_closest_waypoint_index(self):
 
-        rospy.logwarn('x,y : %s, %s ', self.x, self.y)
+        # rospy.logwarn('x,y : %s, %s ', self.x, self.y)
 
         if self.x is None or self.y is None or self.waypoints is None:
             return
@@ -133,8 +133,8 @@ class WaypointUpdater(object):
             if wp_distance < distance:
                 distance = wp_distance
                 self.closest = ind
-        rospy.logwarn('closest : %s, %s ', self.waypoints[self.closest].pose.pose.position.x,
-                     self.waypoints[self.closest].pose.pose.position.y)
+        #rospy.logwarn('closest : %s, %s ', self.waypoints[self.closest].pose.pose.position.x,
+        #             self.waypoints[self.closest].pose.pose.position.y)
 
     def waypoints_cb(self, msg):
         self.waypoints = msg.waypoints
@@ -145,13 +145,13 @@ class WaypointUpdater(object):
 	self.final_waypoints = self.get_next_waypoints()
         self.tw_id = msg.data
 	if self.waypoints is not None:
-            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.44704 # mph to m/s
+            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) #m/s
 	else:
 	    v0 = self.target_velocity
 
-	rospy.logwarn('traffic_waypoint: %s', self.tw_id)
-	rospy.logwarn('closest index: %s', self.closest)
-	rospy.logwarn('initial v: %s', v0)
+	#rospy.logwarn('traffic_waypoint: %s', self.tw_id)
+	# rospy.logwarn('closest index: %s', self.closest)
+	# rospy.logwarn('initial v: %s', v0)
 	
 	# solve the quadratic equation.
         qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
@@ -160,7 +160,7 @@ class WaypointUpdater(object):
             if self.tw_id != -1:
                 # compute distance from current position to red tl.
                 d = self.distance(self.waypoints, self.closest, self.tw_id)
-	        rospy.logwarn('tl distance: %s', d)
+	        #rospy.logwarn('tl distance: %s', d)
 
                 if self.chk_stp(v0, d):  #check whether or not can stop.
 		    # set deceleration value.
@@ -168,7 +168,7 @@ class WaypointUpdater(object):
 		        decel = v0 * v0 /2/d
 		    else:
 		        decel = 0
-		    rospy.logwarn('deceleration: %s', decel)
+		    #rospy.logwarn('deceleration: %s', decel)
 
                     for i in range(len(self.final_waypoints.waypoints)):
                         # distance from closest id to the point where set the vehicle speed this time.
@@ -198,7 +198,7 @@ class WaypointUpdater(object):
 		    # accelerate with DBW_node.
 		    set_v = self.target_velocity
                     self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
-	    # rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[0]))
+	    #rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[0]))
 	    #if ((self.tw_id != -1) & (self.tw_id > self.closest)):
 	    #    rospy.logwarn('set tl v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id - self.closest]))
 
@@ -211,7 +211,7 @@ class WaypointUpdater(object):
         else:
             v0 = self.target_velocity
 
-        rospy.logwarn('obstacle waypoint: %s', self.ow_id)
+        #rospy.logwarn('obstacle waypoint: %s', self.ow_id)
         #rospy.logwarn('closest index: %s', self.closest)
         #rospy.logwarn('initial v: %s', v0)
 
