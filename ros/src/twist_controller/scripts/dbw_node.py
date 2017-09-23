@@ -89,6 +89,8 @@ class DBWNode(object):
                 rospy.loginfo('Speed Demand: %f, Speed Actual: %f', self.speed_demand, self.speed)
                 rospy.loginfo('Yaw Rate Demand: %f, Yaw Rate Actual: %f', self.yaw_rate_demand, self.yaw_rate)
                 self.publish(throttle, brake, steer)
+            else:
+                self.speed_controller.reset()
 
             rate.sleep()
 

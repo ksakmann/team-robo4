@@ -28,3 +28,6 @@ class SpeedController(object):
                 brake = -val
 
         return throttle, brake
+
+    def reset(self):
+        self.pid.reset()
