@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 
@@ -32,8 +33,8 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        rospy.Subscriber('/traffic_waypoint', Lane, self.traffic_cb)
-        rospy.Subscriber('/obstacle_waypoint', Lane, self.obstacle_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
@@ -43,7 +44,7 @@ class WaypointUpdater(object):
         
         self.accel_limit = 4.0 # m/sec^2
 	
-	self.final_waypoints = Lane
+	self.final_waypoints = Lane()
 
         self.x = None
         self.y = None
@@ -57,18 +58,7 @@ class WaypointUpdater(object):
         self.closest = None	# closest waypoint index to current position.
 	self.target_velocity = 10.0 * 0.44704	# target velocity is 10mph. in our unit, m/sec
 
-        # standard loop to publish data from ros pub/sub tutorial
-	rate = rospy.Rate(10)
-        while not rospy.is_shutdown():
-	
-            # lane = self.get_next_waypoints()
-	    self.get_next_waypoints()
-            # if lane is not None:
-	    if self.final_waypoints is not None:
-                self.final_waypoints_pub.publish(self.final_waypoints)
-
-            rate.sleep()
-	# rospy.spin()
+	rospy.spin()
 
     def pose_cb(self, msg):
 
@@ -81,6 +71,10 @@ class WaypointUpdater(object):
         quaternion = [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]
         self.roll, self.pitch, self.yaw = tf.transformations.euler_from_quaternion(quaternion)
         rospy.logwarn('pose : %s, %s, %s', self.x, self.y, self.z)
+	
+	# self.final_waypoints = self.get_next_waypoints()
+	if self.final_waypoints is not None:
+	    self.final_waypoints_pub.publish(self.final_waypoints)
 
     def get_next_waypoints(self):
 
@@ -97,13 +91,12 @@ class WaypointUpdater(object):
         if xpp < 0:
             ind = (ind + 1) % self.no_waypoints
 
-        # lane = Lane()
+        lane = Lane()
         for i in range(LOOKAHEAD_WPS):
-            #lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
-	    self.final_waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
+            lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
 
         rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
-        # return lane
+        return lane
 
 
 
@@ -146,18 +139,24 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        self.tw_id = msg
-        v0 = get_waypoint_velocity(self.waypoints[self.closest])
-
+	self.final_waypoints = self.get_next_waypoints()
+        self.tw_id = msg.data
+	if self.waypoints is not None:
+            v0 = self.get_waypoint_velocity(self.waypoints[self.closest])
+	else:
+	    v0 = self.target_velocity
+	rospy.logwarn('traffic_waypoint: %s', self.tw_id)
+	
+	# solve the quadratic equation.
+        qe = lambda a,b,c: (math.sqrt(b*b + 4*a*c) - b) /2/a
+	
         if self.tw_id != -1:
             # compute distance from current position to red tl.
             d = self.distance(self.waypoints, self.closest, self.tw_id)
+	    rospy.logwarn('tl distance: %s', d)
 
-            # solve the quadratic equation.
-            qe = lambda a,b c: (math.srqt(b*b + 4*a*c) - b) /2/a
-
-            if chk_stp(v0, d):  #check whether or not can stop.
-                for i, wp in enumerate(self.final_waypoints.waypoints):
+            if self.chk_stp(v0, d):  #check whether or not can stop.
+                for i in range(len(self.final_waypoints.waypoints)):
                     # distance from near_id to the point where set the vehicle speed this time.
                     d_int = d / (self.tw_id - self.closest - i)
                     decel = v0 * v0 /2/d
@@ -165,20 +164,23 @@ class WaypointUpdater(object):
                     # a certain distance.
                     delta_t = qe(decel/2, v0, d_int)
                     set_v = max(v0 - decel * delta_t, 0)
-                    set_waypoint_velocity(wp, i, set_v)
+                    self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
 
         else:
             # Accelerate to set speed.
-            for i, wp in enumerate(self.final_waypoints.waypoints):
+            for i in range(len(self.final_waypoints.waypoints)):
 
-                d = self.distance(self.base_waypoints, self.closest, self.closest + i)
+                d_int = self.distance(self.waypoints, self.closest, self.closest + i)
                 delta_t = qe(self.accel_limit, v0, d_int)
                 set_v = min(self.target_velocity, v0 + self.accel_limit * delta_t)
-                set_waypoint_velocity(wp, i, set_v)
+                self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+	rospy.logwarn('set tl v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id]))
+	if self.tw_id != -1:
+	    rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id]))
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
-        self.ow_id = msg
+        self.ow_id = msg.data
 	# TODO: Implement code to stop before the obstacle. Almost the same as traffic_cb?!
 
     def get_waypoint_velocity(self, waypoint):
