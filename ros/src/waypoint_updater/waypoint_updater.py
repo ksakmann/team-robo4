@@ -72,9 +72,12 @@ class WaypointUpdater(object):
         self.roll, self.pitch, self.yaw = tf.transformations.euler_from_quaternion(quaternion)
         rospy.logwarn('pose : %s, %s, %s', self.x, self.y, self.z)
 	
-	# self.final_waypoints = self.get_next_waypoints()
+	# if self.tw_id == -1:
+	#     self.final_waypoints = self.get_next_waypoints()
+	
 	if self.final_waypoints is not None:
 	    self.final_waypoints_pub.publish(self.final_waypoints)
+	
 
     def get_next_waypoints(self):
 
@@ -146,9 +149,9 @@ class WaypointUpdater(object):
 	else:
 	    v0 = self.target_velocity
 
-	rospy.logwarn('traffic_waypoint: %s', self.tw_id)
-	rospy.logwarn('closest index: %s', self.closest)
-	rospy.logwarn('initial v: %s', v0)
+	# rospy.logwarn('traffic_waypoint: %s', self.tw_id)
+	# rospy.logwarn('closest index: %s', self.closest)
+	# rospy.logwarn('initial v: %s', v0)
 	
 	# solve the quadratic equation.
         qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
@@ -184,7 +187,7 @@ class WaypointUpdater(object):
                             self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
 		        else:
 			    set_v = 0
-			rospy.logwarn('index: %s, set v: %s', i, set_v)
+			#rospy.logwarn('index: %s, set v: %s', i, set_v)
 		        self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
             else:
                 # Accelerate to set speed.
@@ -203,6 +206,55 @@ class WaypointUpdater(object):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         self.ow_id = msg.data
 	# TODO: Implement code to stop before the obstacle. Almost the same as traffic_cb?!
+        if self.waypoints is not None:
+            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.44704 # mph to m/s
+        else:
+            v0 = self.target_velocity
+
+        rospy.logwarn('obstacle waypoint: %s', self.ow_id)
+        #rospy.logwarn('closest index: %s', self.closest)
+        #rospy.logwarn('initial v: %s', v0)
+
+        # solve the quadratic equation.
+        qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
+
+        if self.final_waypoints is not None:
+            if self.ow_id != -1:
+                # compute distance from current position to red tl.
+                d = self.distance(self.waypoints, self.closest, self.ow_id)
+                rospy.logwarn('obstacle distance: %s', d)
+
+                
+                # set deceleration value.
+                if d != 0:
+                    decel = v0 * v0 /2/d
+                else:
+                    decel = 0
+                rospy.logwarn('deceleration: %s', decel)
+
+                for i in range(len(self.final_waypoints.waypoints)):
+                    # distance from closest id to the point where set the vehicle speed this time.
+                    if (self.ow_id - self.closest != 0):
+                        d_int = d / (self.ow_id - self.closest) * i
+                    else:
+                        d_int = 0
+                    
+                    # Solve the quadratic equation to find the time required to travel
+                    # a certain distance.
+                    if ((decel != 0) & (d_int <= d)):
+                        delta_t = qe(-decel/2, v0, -d_int)
+                        set_v = max(v0 - decel * delta_t, 0)
+                        self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+                    else:
+                        set_v = 0
+                    #rospy.logwarn('index: %s, set v: %s', i, set_v)
+                    self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+            else:
+                # Accelerate to set speed.
+                for i in range(len(self.final_waypoints.waypoints)):
+                    # accelerate with DBW_node.
+                    set_v = self.target_velocity
+                    self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
