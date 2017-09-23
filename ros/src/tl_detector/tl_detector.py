@@ -13,7 +13,7 @@ import yaml
 import math
 import numpy as np
 
-STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 0
 
 class TLDetector(object):
     def __init__(self):
@@ -87,6 +87,7 @@ class TLDetector(object):
         of times till we start using it. Otherwise the previous stable state is
         used.
         '''
+        # rospy.logwarn('self.state_count: %s', self.state_count)
         if self.state != state:
             self.state_count = 0
             self.state = state
@@ -94,10 +95,12 @@ class TLDetector(object):
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
+            # rospy.logwarn('self.last_wp :%s', self.last_wp)
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
+        #rospy.logwarn('self.last_wp: %s', self.last_wp)
 
     def get_closest_waypoint(self, pose):
         """Identifies the closest path waypoint to the given position
@@ -250,7 +253,7 @@ class TLDetector(object):
                 break
             # cnt +=1
             
-        rospy.logwarn('traffic light state = %d', tl_state)
+        #rospy.logwarn('traffic light state = %d', tl_state)
         # rospy.logwarn(tl_state)
         return tl_state
 
@@ -272,7 +275,7 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         x, y = self.project_to_image_plane(light.pose.pose.position)
-        rospy.logwarn('project to image plane x, y = %f, %f', x, y)
+        #rospy.logwarn('project to image plane x, y = %f, %f', x, y)
 
         #TODO use light location to zoom in on traffic light in image
 
@@ -301,7 +304,8 @@ class TLDetector(object):
             #TODO find the closest visible traffic light (if one exists)
             for lp in self.lights:
                 light_wpx = self.get_closest_waypoint_birectional(lp.pose.pose)
-                if light_wpx >= car_position:
+                # detect traffic signal near car_position approximate 50m.
+                if ((light_wpx >= car_position) & (light_wpx < car_position+50)):
                     if cls_light_wpx is None:
                         cls_light_wpx = light_wpx
                         light = lp
@@ -329,9 +333,10 @@ class TLDetector(object):
 
 
         if light:
-            state = self.get_light_state(light)
-            # return light_wp, state
-            return cls_light_stop_wpx, state
+            if ((min_dist < 50) & (min_dist>0)):
+                state = self.get_light_state(light)
+                # return light_wp, state
+                return cls_light_stop_wpx, state
         self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
