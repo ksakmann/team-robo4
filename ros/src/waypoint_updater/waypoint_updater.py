@@ -142,7 +142,7 @@ class WaypointUpdater(object):
 	self.final_waypoints = self.get_next_waypoints()
         self.tw_id = msg.data
 	if self.waypoints is not None:
-            v0 = self.get_waypoint_velocity(self.waypoints[self.closest])
+            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.44704 # mph to m/s
 	else:
 	    v0 = self.target_velocity
 
