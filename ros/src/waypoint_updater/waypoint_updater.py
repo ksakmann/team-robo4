@@ -176,7 +176,9 @@ class WaypointUpdater(object):
                             
                         # Solve the quadratic equation to find the time required to travel
                         # a certain distance.
-		        if ((decel != 0) & (d_int <= d)):
+		        #if d > 80:	# Don't decelerate when tl is more than 80m away.
+			#    set_v = self.target_velocity
+			if ((decel != 0) & (d_int <= d)):
                             delta_t = qe(-decel/2, v0, -d_int)
                             set_v = max(v0 - decel * delta_t, 0)
                             self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
@@ -184,18 +186,18 @@ class WaypointUpdater(object):
 			    set_v = 0
 			rospy.logwarn('index: %s, set v: %s', i, set_v)
 		        self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
-
             else:
                 # Accelerate to set speed.
                 for i in range(len(self.final_waypoints.waypoints)):
-
-                    d_int = self.distance(self.waypoints, self.closest, self.closest + i)
-                    delta_t = qe(self.accel_limit/2, v0, -d_int)
-                    set_v = min(self.target_velocity, v0 + self.accel_limit * delta_t)
+                    #d_int = self.distance(self.waypoints, self.closest, self.closest + i)
+                    #delta_t = qe(self.accel_limit/2, v0, -d_int)
+                    #set_v = min(self.target_velocity, v0 + self.accel_limit * delta_t)
+		    # accelerate with DBW_node.
+		    set_v = self.target_velocity
                     self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
-	    rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[0]))
-	    if ((self.tw_id != -1) & (self.tw_id > self.closest)):
-	        rospy.logwarn('set tl v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id - self.closest]))
+	    # rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[0]))
+	    #if ((self.tw_id != -1) & (self.tw_id > self.closest)):
+	    #    rospy.logwarn('set tl v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id - self.closest]))
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
