@@ -126,7 +126,7 @@ class TLDetector(object):
             q1_a = np.array([q1.x, q1.y, q1.z, q1.w])
             q2_a = np.array([q2.x, q2.y, q2.z, q2.w])
             direction = abs(np.dot(q1_a, q2_a))
-            rospy.logwarn('calculated direction %f', direction)
+            #rospy.logwarn('calculated direction %f', direction)
             wp_x = self.waypoints.waypoints[min_idx].pose.pose.position.x
             if direction > 1-eps:
                 if wp_x < cur_x:
@@ -172,9 +172,19 @@ class TLDetector(object):
             rospy.logerr("Failed to find camera to map transform")
 
         #TODO Use tranform and rotation to calculate 2D position of light in image
+        # http://www.cse.psu.edu/~rtc12/CSE486/lecture12.pdf
+        # http://www.cse.psu.edu/~rtc12/CSE486/lecture13.pdf
+        # get a matrix
+        t_r_matrix = self.listener.fromTranslationRotation(trans, rot)
+        p_w_array = np.array([[point_in_world.x], [point_in_world.y], [point_in_world.z], [1.0]])
+        p_c_array = np.dot(t_r_matrix, p_w_array)
 
-        x = 0
-        y = 0
+        p_c_x = p_c_array[2][0]
+        p_c_y = p_c_array[1][0]
+        p_c_z = p_c_array[0][0]
+
+        x = int(-(fx / p_c_x) * p_c_y)
+        y = int(-(fy / p_c_x) * p_c_z)
 
         return (x, y)
 
