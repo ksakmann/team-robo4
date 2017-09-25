@@ -7,8 +7,8 @@ class YawRateController(object):
         kd = 0
         self.pid = pid(kp, ki, kd, min=-1, 1)
 
-    def control(self, demand, current, time_step):
-        error = demand - current
+    def control(self, demand, x, time_step):
+        error = demand - x
         steer = self.pid.step(error, time_step)
 
         return steer
