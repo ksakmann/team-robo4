@@ -9,7 +9,7 @@ class SpeedController(object):
         kp = 1
         ki = 0
         kd = 0
-        is_initialized = False # TODO Implement intialization (handle dt)
+        # is_initialized = False # TODO Implement intialization (handle dt)
         self.pid = PID(kp, ki, kd, min=-1, max=1)
         self.brake_torque_gain = 1
 

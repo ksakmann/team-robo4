@@ -79,22 +79,21 @@ class DBWNode(object):
         rate = rospy.Rate(self.rate) # 50Hz
 
         rospy.logdebug('DBW Rate set')
-        print("DBW RATE SET")
 
         while not rospy.is_shutdown():
             # TODO Can we assume the sampling time is constant? Or do we need to calculated the time elapsed since last exec?
             dt = 1./self.rate
             yaw_rate = self.get_yaw_rate()
-            throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, dt)
+            speed_demand = 10 * 1.6 / 3.6 # m/s 
+            throttle, brake = self.speed_controller.control(speed_demand, self.speed, dt)
+            # throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, dt)
             steer = self.yaw_rate_controller.control(self.yaw_rate_demand, yaw_rate, dt)
 
             # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
             # if self.dbw_enabled:
-            throttle = 100
-            print("DBW THROTTLE SET TO 100")
+            steer = 0.0
+            rospy.loginfo('Speed Demand: %f, Speed Actual: %f', speed_demand, self.speed)
             self.publish(throttle, brake, steer)
-
-            rospy.logdebug('DBW Pre sleep')
 
             rate.sleep()
 
@@ -103,7 +102,7 @@ class DBWNode(object):
         tcmd = ThrottleCmd()
         tcmd.enable = True
         tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
-        tcmd.pedal_cmd = throttle
+        tcmd.pedal_cmd = throttle * 100
         self.throttle_pub.publish(tcmd)
 
         scmd = SteeringCmd()
