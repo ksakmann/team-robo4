@@ -14,7 +14,6 @@ The bag can be found in `styx/data` folder.
 
 This file will produce 3 csv files which you can process to figure out how your DBW node is
 performing on various commands.
-
 `/actual/*` are commands from the recorded bag while `/vehicle/*` are the output of your node.
 
 '''

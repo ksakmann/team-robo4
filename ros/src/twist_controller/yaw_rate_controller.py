@@ -1,11 +1,11 @@
-
+from pid import PID
 
 class YawRateController(object):
     def __init__(self):
         kp = 0
         ki = 0
         kd = 0
-        self.pid = pid(kp, ki, kd, min=-1, 1)
+        self.pid = PID(kp, ki, kd, min=1, max=1)
 
     def control(self, demand, x, time_step):
         error = demand - x
