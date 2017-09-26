@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped,TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 
 import math
@@ -23,7 +23,6 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
 
-
 class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater')
@@ -38,11 +37,28 @@ class WaypointUpdater(object):
 
         # TODO: Add other member variables you need below
 
-        rospy.spin()
+        self.x = None
+        self.y = None
+        self.z = None  # z seems to be always zero for all base waypoints
+        self.orientation = None
+        self.waypoints = None
+        self.target_velocity = 10.0
+
+        # standard loop to publish data from ros pub/sub tutorial
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            # TODO **** fill up lane with waypoints *****
+            lane = Lane()
+            self.final_waypoints_pub.publish(lane)
+            rate.sleep()
 
     def pose_cb(self, msg):
-        # TODO: Implement
-        pass
+        self.x = msg.pose.position.x
+        self.y = msg.pose.position.y
+        self.z = msg.pose.position.z
+        # TODO: Implement orientation from quaternion data
+        self.orientation = msg.pose.orientation
+
 
     def waypoints_cb(self, waypoints):
         # TODO: Implement
