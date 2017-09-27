@@ -4,7 +4,8 @@ import rospy
 from geometry_msgs.msg import PoseStamped,TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 
-import math
+import math,tf
+
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -25,7 +26,7 @@ LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this n
 
 class WaypointUpdater(object):
     def __init__(self):
-        rospy.init_node('waypoint_updater')
+        rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -41,13 +42,17 @@ class WaypointUpdater(object):
         self.y = None
         self.z = None  # z seems to be always zero for all base waypoints
         self.orientation = None
+        self.roll = None
+        self.pitch = None
+        self.yaw = None   # the orientation in the plane z = 0 (phi)
         self.waypoints = None
+        self.no_waypoints = None
         self.target_velocity = 10.0
 
         # standard loop to publish data from ros pub/sub tutorial
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
-            # TODO **** fill up lane with waypoints *****
+
             lane = Lane()
             self.final_waypoints_pub.publish(lane)
             rate.sleep()
@@ -56,12 +61,22 @@ class WaypointUpdater(object):
         self.x = msg.pose.position.x
         self.y = msg.pose.position.y
         self.z = msg.pose.position.z
-        # TODO: Implement orientation from quaternion data
+
+        # TODO quaternions: https://answers.ros.org/question/69754/quaternion-transformations-in-python/
         self.orientation = msg.pose.orientation
+        quaternion = [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]
+        self.roll,self.pitch,self.yaw = tf.transformations.euler_from_quaternion(quaternion)
 
+    def get_next_waypoints(self):
+        closest  = self.get_closest_waypoint_index(self.waypoints)
+        pass
 
-    def waypoints_cb(self, waypoints):
-        self.waypoints = waypoints
+    def get_closest_waypoint_index(self,waypoints):
+        pass
+
+    def waypoints_cb(self, msg):
+        self.waypoints = msg.waypoints
+        self.no_waypoints = len(msg.waypoints)
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
