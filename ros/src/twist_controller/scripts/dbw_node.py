@@ -8,8 +8,6 @@ from std_msgs.msg import Bool
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
 from geometry_msgs.msg import TwistStamped, PoseStamped
 
-
-from twist_controller import Controller
 from speed_controller import SpeedController
 from yaw_rate_controller import YawRateController
 
@@ -58,7 +56,7 @@ class DBWNode(object):
         self.speed = 0
         self.pose  = PoseStamped # Current pose
         self.pose0 = PoseStamped # Previous pose
-        self.rate = 50 # DBW node rate (Hz)
+        self.rate = 10 # DBW node rate (Hz)
 
         self.steer_pub    = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=1)
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
@@ -108,11 +106,11 @@ class DBWNode(object):
         scmd.steering_wheel_angle_cmd = steer
         self.steer_pub.publish(scmd)
 
-        bcmd = BrakeCmd()
-        bcmd.enable = True
-        bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
-        bcmd.pedal_cmd = brake
-        self.brake_pub.publish(bcmd)
+        # bcmd = BrakeCmd()
+        # bcmd.enable = True
+        # bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
+        # bcmd.pedal_cmd = brake
+        # self.brake_pub.publish(bcmd)
 
     
     def speed_cb(self, msg):
