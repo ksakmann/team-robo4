@@ -1,11 +1,11 @@
 from pid import PID
 
 class YawRateController(object):
-    def __init__(self):
-        kp = 0
+    def __init__(self, max_angle_steer):
+        kp = 0.1
         ki = 0
         kd = 0
-        self.pid = PID(kp, ki, kd, min=1, max=1)
+        self.pid = PID(kp, ki, kd, min=-max_angle_steer, max=max_angle_steer)
 
     def control(self, demand, x, time_step):
         error = demand - x

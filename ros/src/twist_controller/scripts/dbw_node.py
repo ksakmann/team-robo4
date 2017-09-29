@@ -6,7 +6,7 @@ import tf
 import rospy
 from std_msgs.msg import Bool
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
-from geometry_msgs.msg import TwistStamped, PoseStamped
+from geometry_msgs.msg import TwistStamped
 
 from speed_controller import SpeedController
 from yaw_rate_controller import YawRateController
@@ -51,26 +51,25 @@ class DBWNode(object):
         max_lat_accel   = rospy.get_param('~max_lat_accel'  , 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
 
-        self.speed_demand = 0
-        self.yaw_rate_demand = 0
         self.speed = 0
-        self.pose  = PoseStamped # Current pose
-        self.pose0 = PoseStamped # Previous pose
-        self.rate = 10 # DBW node rate (Hz)
+        self.speed_demand = 0
+        self.yaw_rate = 0
+        self.yaw_rate_demand = 0
+        self.rate = 50 # DBW node rate (Hz)
 
         self.steer_pub    = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=1)
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
         self.brake_pub    = rospy.Publisher('/vehicle/brake_cmd'   , BrakeCmd   , queue_size=1)
 
         # self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
-        self.speed_sub       = rospy.Subscriber('/current_velocity'   , TwistStamped, self.speed_cb)
-        self.pose_sub        = rospy.Subscriber('/current_pose'       , PoseStamped , self.pose_cb)
-        self.twist_cmd_sub   = rospy.Subscriber('/twist_cmd'          , TwistStamped, self.twist_cmd_cb)
+        self.speed_sub     = rospy.Subscriber('/current_velocity', TwistStamped, self.speed_cb)
+        self.twist_cmd_sub = rospy.Subscriber('/twist_cmd'       , TwistStamped, self.twist_cmd_cb)
 
         self.speed_controller = SpeedController()
-        self.yaw_rate_controller = YawRateController()
+        self.yaw_rate_controller = YawRateController(max_steer_angle)
 
         self.loop()
+
 
     def loop(self):
 
@@ -81,24 +80,24 @@ class DBWNode(object):
         while not rospy.is_shutdown():
             # TODO Can we assume the sampling time is constant? Or do we need to calculated the time elapsed since last exec?
             dt = 1./self.rate
-            yaw_rate = self.get_yaw_rate()
             throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, dt)
-            steer = self.yaw_rate_controller.control(self.yaw_rate_demand, yaw_rate, dt)
+            steer = self.yaw_rate_controller.control(self.yaw_rate_demand, self.yaw_rate, dt)
 
             # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
             # if self.dbw_enabled:
-            steer = 0.0
             rospy.loginfo('Speed Demand: %f, Speed Actual: %f', self.speed_demand, self.speed)
+            rospy.loginfo('Yaw Rate Demand: %f, Yaw Rate Actual: %f', self.yaw_rate_demand, self.yaw_rate)
             self.publish(throttle, brake, steer)
 
             rate.sleep()
+
 
     def publish(self, throttle, brake, steer):
         
         tcmd = ThrottleCmd()
         tcmd.enable = True
         tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
-        tcmd.pedal_cmd = throttle * 100
+        tcmd.pedal_cmd = throttle
         self.throttle_pub.publish(tcmd)
 
         scmd = SteeringCmd()
@@ -115,33 +114,32 @@ class DBWNode(object):
     
     def speed_cb(self, msg):
         self.speed = msg.twist.linear.x
-
-
-    def pose_cb(self, msg):
-        self.pose0 = self.pose
-        self.pose = msg
+        self.yaw_rate = msg.twist.angular.z
         
 
     def dbw_enabled_cb(self, msg):
         self.dbw_enabled = msg
     
+
     def twist_cmd_cb(self, msg):
         self.speed_demand = msg.twist.linear.x # m/s
         self.yaw_rate_demand = msg.twist.angular.z # rad/s
 
-    def get_yaw_rate(self):
-        
-        # dt = self.pose.header.stamp.to_sec() - self.pose0.header.stamp.to_sec()
-        # euler_angles  = tf.transformations.euler_from_quaternion(self.pose.pose.orientation)
-        # euler_angles2 = tf.transformations.euler_from_quaternion(self.pose0.pose.orientation)
-        # yaw  = euler_angles[2]
-        # yaw0 = euler_angles0[2]
-         
-        # yaw_rate = (yaw - yaw0) / dt
-        
-        yaw_rate = 0
 
-        return yaw_rate
+
+    # def get_yaw_rate(self):
+        
+    #     dt = self.pose.header.stamp.to_sec() - self.pose0.header.stamp.to_sec()
+    #     euler_angles  = tf.transformations.euler_from_quaternion(self.pose.pose.orientation)
+    #     euler_angles2 = tf.transformations.euler_from_quaternion(self.pose0.pose.orientation)
+    #     yaw  = euler_angles[2]
+    #     yaw0 = euler_angles0[2]
+         
+    #     yaw_rate = (yaw - yaw0) / dt
+        
+    #     yaw_rate = 0
+
+    #     return yaw_rate
 
     
 if __name__ == '__main__':
