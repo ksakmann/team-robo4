@@ -4,12 +4,13 @@ from pid import PID
 
 class YawRateController(object):
     def __init__(self, max_angle_steer, steer_ratio, wheel_base):
+        self.max_angle_steer = max_angle_steer
         self.steer_ratio = steer_ratio
         self.wheel_base = wheel_base
         kp = 0
         ki = 0
         kd = 0
-        self.pid = PID(kp, ki, kd, min=-max_angle_steer, max=max_angle_steer)
+        self.pid = PID(kp, ki, kd, min=-self.max_angle_steer, max=self.max_angle_steer)
 
     def feedforward_contol(self, v_car, n_yaw):
         if v_car > 0:

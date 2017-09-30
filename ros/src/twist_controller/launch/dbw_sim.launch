@@ -12,5 +12,4 @@
         <param name="max_lat_accel" value="3." />
         <param name="max_steer_angle" value="8." />
     </node>
-    <!-- <node pkg="twist_controller" type="controller_test.py" name="controller_test"/> -->
 </launch>
