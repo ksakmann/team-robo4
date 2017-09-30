@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import math
 import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
@@ -210,19 +211,29 @@ class TLDetector(object):
             rospy.logerr("Failed to find camera to map transform")
 
         #TODO Use tranform and rotation to calculate 2D position of light in image
-        # http://www.cse.psu.edu/~rtc12/CSE486/lecture12.pdf
-        # http://www.cse.psu.edu/~rtc12/CSE486/lecture13.pdf
-        # get a matrix
-        t_r_matrix = self.listener.fromTranslationRotation(trans, rot)
-        p_w_array = np.array([[point_in_world.x], [point_in_world.y], [point_in_world.z], [1.0]])
-        p_c_array = np.dot(t_r_matrix, p_w_array)
+        x = 0
+        y = 0
+        if (trans != None):
+            rot_eu = tf.transformations.euler_from_quaternion(rot)
+            s_yaw = math.sin(rot_eu[2])
+            c_yaw = math.cos(rot_eu[2])
 
-        p_c_x = p_c_array[2][0]
-        p_c_y = p_c_array[1][0]
-        p_c_z = p_c_array[0][0]
+            piw_x = point_in_world.x
+            piw_y = point_in_world.y
+            piw_z = point_in_world.z
 
-        x = int(-(fx / p_c_x) * p_c_y)
-        y = int(-(fy / p_c_x) * p_c_z)
+            t_x = trans[0]
+            t_y = trans[1]
+            t_z = trans[2]
+
+            rot_trans = (piw_x*c_yaw - piw_y*s_yaw + t_x,
+                         piw_x*s_yaw + piw_y*c_yaw + t_y,
+                         piw_z + t_z)
+
+            rospy.logwarn('fx=%f, fy=%f', fx, fy)
+            x = int(fx * -rot_trans[1]/rot_trans[0] + image_width/2)
+            y = int(fy * -rot_trans[2]/rot_trans[0] + image_height/2)
+            # rospy.logwarn('x=%f, y=%f', x, y)
 
         return (x, y)
 
