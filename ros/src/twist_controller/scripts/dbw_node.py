@@ -66,7 +66,7 @@ class DBWNode(object):
         self.twist_cmd_sub = rospy.Subscriber('/twist_cmd'       , TwistStamped, self.twist_cmd_cb)
 
         self.speed_controller = SpeedController()
-        self.yaw_rate_controller = YawRateController(max_steer_angle)
+        self.yaw_rate_controller = YawRateController(max_steer_angle, steer_ratio, wheel_base)
 
         self.loop()
 
@@ -81,7 +81,7 @@ class DBWNode(object):
             # TODO Can we assume the sampling time is constant? Or do we need to calculated the time elapsed since last exec?
             dt = 1./self.rate
             throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, dt)
-            steer = self.yaw_rate_controller.control(self.yaw_rate_demand, self.yaw_rate, dt)
+            steer = self.yaw_rate_controller.control(self.speed_demand, self.yaw_rate_demand)
 
             # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
             # if self.dbw_enabled:
