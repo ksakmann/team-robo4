@@ -244,7 +244,7 @@ class TLDetector(object):
     def get_light_state_from_simulator(self, light):
         # assuming that simulator publishes the traffic light status in the sequence of nearest available light.
         # rospy.logwarn('ligt data type is --------%s\\n', light)
-        tl_state = None
+        tl_state = -1
         # cnt = 1
         for tl in self.lights:
             distance = np.sqrt((tl.pose.pose.position.x - light.pose.pose.position.x)**2 + (tl.pose.pose.position.y - light.pose.pose.position.y)**2)
