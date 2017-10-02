@@ -274,6 +274,12 @@ class TLDetector(object):
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+
+        #TODO use light location to zoom in on traffic light in image
+        rospy.logwarn(len(cv_image))
+        cv_image = cv_image[201:600, :, :]
+        # output image will be of size 800x400
+
         # save 100 images for training purposes
         if self.save_images == True and self.saved_image_counter <= self.saved_image_limit:
             rospy.logwarn('saving images')
@@ -284,8 +290,6 @@ class TLDetector(object):
 
         x, y = self.project_to_image_plane(light.pose.pose.position)
         rospy.logwarn('project to image plane x, y = %f, %f', x, y)
-
-        #TODO use light location to zoom in on traffic light in image
 
         #Get classification
         # return self.light_classifier.get_classification(cv_image)
