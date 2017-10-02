@@ -12,6 +12,7 @@ import cv2
 import yaml
 import math
 import numpy as np
+import os
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -51,6 +52,9 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        self.save_images = False
+        self.saved_image_counter = 1
+        self.saved_image_limit = 100
 
         rospy.spin()
 
@@ -270,6 +274,13 @@ class TLDetector(object):
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        # save 100 images for training purposes
+        if self.save_images == True and self.saved_image_counter <= self.saved_image_limit:
+            rospy.logwarn('saving images')
+            if not (os.path.exists("./tl_images")):
+                os.mkdir("./tl_images")
+            cv2.imwrite("./tl_images/image{}.jpg".format(self.saved_image_counter), cv_image)
+            self.saved_image_counter += 1
 
         x, y = self.project_to_image_plane(light.pose.pose.position)
         rospy.logwarn('project to image plane x, y = %f, %f', x, y)
