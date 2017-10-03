@@ -11,7 +11,6 @@ class SpeedController(object):
         kd = 0
         # is_initialized = False # TODO Implement intialization (handle dt)
         self.pid = PID(kp, ki, kd, min=-1, max=1)
-        self.brake_torque_gain = 1
 
     def control(self, demand, x, time_step):
         error = demand - x
@@ -22,6 +21,6 @@ class SpeedController(object):
             brake = 0
         else:
             throttle = 0
-            brake = -val * self.brake_torque_gain 
+            brake = -val
 
         return throttle, brake

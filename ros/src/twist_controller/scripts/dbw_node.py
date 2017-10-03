@@ -57,9 +57,9 @@ class DBWNode(object):
         self.yaw_rate_demand = 0
         self.rate = 50 # DBW node rate (Hz)
 
-        self.steer_pub    = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=1)
-        self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
-        self.brake_pub    = rospy.Publisher('/vehicle/brake_cmd'   , BrakeCmd   , queue_size=1)
+        self.steer_pub    = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=5)
+        self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=5)
+        self.brake_pub    = rospy.Publisher('/vehicle/brake_cmd'   , BrakeCmd   , queue_size=5)
 
         # self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
         self.speed_sub     = rospy.Subscriber('/current_velocity', TwistStamped, self.speed_cb)
@@ -100,16 +100,19 @@ class DBWNode(object):
         tcmd.pedal_cmd = throttle
         self.throttle_pub.publish(tcmd)
 
-        scmd = SteeringCmd()
-        scmd.enable = True
-        scmd.steering_wheel_angle_cmd = steer
-        self.steer_pub.publish(scmd)
+        if throttle > 0:
+            scmd = SteeringCmd()
+            scmd.enable = True
+            scmd.steering_wheel_angle_cmd = steer
+            self.steer_pub.publish(scmd)
 
-        # bcmd = BrakeCmd()
-        # bcmd.enable = True
-        # bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
-        # bcmd.pedal_cmd = brake
-        # self.brake_pub.publish(bcmd)
+        if brake > 0:
+            bcmd = BrakeCmd()
+            bcmd.enable = True
+            bcmd.pedal_cmd_type = BrakeCmd.CMD_PERCENT
+            bcmd.pedal_cmd = brake * 100
+            bcmd.boo_cmd = True
+            self.brake_pub.publish(bcmd)
 
     
     def speed_cb(self, msg):
