@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import math
 import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
@@ -18,6 +19,7 @@ class TLDetector(object):
     def __init__(self):
         rospy.init_node('tl_detector')
 
+        self.pose_idx = None
         self.pose = None
         self.waypoints = None
         self.camera_image = None
@@ -56,6 +58,8 @@ class TLDetector(object):
         self.pose = msg
         # rospy.logwarn('curpos x=%f, y=%f, a_x=%f, a_y=%f, a_z=%f', msg.pose.position.x, msg.pose.position.y, \
         #     msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z)
+        self.pose_idx = self.get_closest_waypoint_birectional(msg.pose)
+        # rospy.logwarn('cur pos idx=%d', self.pose_idx)
 
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
@@ -195,6 +199,7 @@ class TLDetector(object):
 
         # get transform between pose of camera and world frame
         trans = None
+        rot = None
         try:
             now = rospy.Time.now()
             self.listener.waitForTransform("/base_link",
@@ -206,35 +211,47 @@ class TLDetector(object):
             rospy.logerr("Failed to find camera to map transform")
 
         #TODO Use tranform and rotation to calculate 2D position of light in image
-        # http://www.cse.psu.edu/~rtc12/CSE486/lecture12.pdf
-        # http://www.cse.psu.edu/~rtc12/CSE486/lecture13.pdf
-        # get a matrix
-        t_r_matrix = self.listener.fromTranslationRotation(trans, rot)
-        p_w_array = np.array([[point_in_world.x], [point_in_world.y], [point_in_world.z], [1.0]])
-        p_c_array = np.dot(t_r_matrix, p_w_array)
+        x = 0
+        y = 0
+        if (trans != None):
+            rot_eu = tf.transformations.euler_from_quaternion(rot)
+            s_yaw = math.sin(rot_eu[2])
+            c_yaw = math.cos(rot_eu[2])
 
-        p_c_x = p_c_array[2][0]
-        p_c_y = p_c_array[1][0]
-        p_c_z = p_c_array[0][0]
+            piw_x = point_in_world.x
+            piw_y = point_in_world.y
+            piw_z = point_in_world.z
 
-        x = int(-(fx / p_c_x) * p_c_y)
-        y = int(-(fy / p_c_x) * p_c_z)
+            t_x = trans[0]
+            t_y = trans[1]
+            t_z = trans[2]
+
+            rot_trans = (piw_x*c_yaw - piw_y*s_yaw + t_x,
+                         piw_x*s_yaw + piw_y*c_yaw + t_y,
+                         piw_z + t_z)
+
+            rospy.logwarn('fx=%f, fy=%f', fx, fy)
+            x = int(fx * -rot_trans[1]/rot_trans[0] + image_width/2)
+            y = int(fy * -rot_trans[2]/rot_trans[0] + image_height/2)
+            # rospy.logwarn('x=%f, y=%f', x, y)
 
         return (x, y)
 
     def get_light_state_from_simulator(self, light):
         # assuming that simulator publishes the traffic light status in the sequence of nearest available light.
         # rospy.logwarn('ligt data type is --------%s\\n', light)
-        tl_state = -1
+        tl_state = None
         # cnt = 1
         for tl in self.lights:
             distance = np.sqrt((tl.pose.pose.position.x - light.pose.pose.position.x)**2 + (tl.pose.pose.position.y - light.pose.pose.position.y)**2)
-            # rospy.logwarn('%d) distance=%d, tl.state=%d', cnt, distance, tl.state)
+            # rospy.logwarn('distance=%d, tl.state=%d', distance, tl.state)
             if (distance < 50): 
                 tl_state = tl.state
+                break
             # cnt +=1
-            break 
+            
         rospy.logwarn('traffic light state = %d', tl_state)
+        # rospy.logwarn(tl_state)
         return tl_state
 
 
@@ -291,7 +308,7 @@ class TLDetector(object):
                     elif light_wpx < cls_light_wpx:
                         cls_light_wpx = light_wpx
                         light = lp
-            rospy.logwarn('cls_light_wpx = %d', cls_light_wpx)
+            # rospy.logwarn('cls_light_wpx = %d', cls_light_wpx)
 
             min_dist = 0
             for slp in stop_line_positions:
@@ -300,7 +317,7 @@ class TLDetector(object):
                 light_stop_pose.position.x = slp[0]
                 light_stop_pose.position.y = slp[1]
                 light_stop_wp = self.get_closest_waypoint_birectional(light_stop_pose) 
-                rospy.logwarn('light_stop_wp = %d', light_stop_wp)
+                # rospy.logwarn('light_stop_wp = %d', light_stop_wp)
                 dist = abs(cls_light_wpx - light_stop_wp)
                 if min_dist == 0:
                     min_dist = dist
@@ -308,6 +325,7 @@ class TLDetector(object):
                 elif dist < min_dist:
                     min_dist = dist
                     cls_light_stop_wpx = light_stop_wp
+            # rospy.logwarn('cls_light_stop_wpx = %d', cls_light_stop_wpx)
 
 
         if light:
