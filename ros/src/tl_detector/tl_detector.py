@@ -230,7 +230,7 @@ class TLDetector(object):
                          piw_x*s_yaw + piw_y*c_yaw + t_y,
                          piw_z + t_z)
 
-            rospy.logwarn('fx=%f, fy=%f', fx, fy)
+            rospy.logdebug('fx=%f, fy=%f', fx, fy)
             x = int(fx * -rot_trans[1]/rot_trans[0] + image_width/2)
             y = int(fy * -rot_trans[2]/rot_trans[0] + image_height/2)
             # rospy.logwarn('x=%f, y=%f', x, y)
@@ -250,7 +250,7 @@ class TLDetector(object):
                 break
             # cnt +=1
             
-        rospy.logwarn('traffic light state = %d', tl_state)
+        rospy.loginfo('traffic light state = %d', tl_state)
         # rospy.logwarn(tl_state)
         return tl_state
 
@@ -272,7 +272,7 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         x, y = self.project_to_image_plane(light.pose.pose.position)
-        rospy.logwarn('project to image plane x, y = %f, %f', x, y)
+        rospy.logdebug('project to image plane x, y = %f, %f', x, y)
 
         #TODO use light location to zoom in on traffic light in image
 
