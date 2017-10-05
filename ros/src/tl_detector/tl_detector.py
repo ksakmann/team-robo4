@@ -12,6 +12,7 @@ import cv2
 import yaml
 import math
 import numpy as np
+import os
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -51,6 +52,9 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        self.save_images = False
+        self.saved_image_counter = 1
+        self.saved_image_limit = 100
 
         rospy.spin()
 
@@ -240,7 +244,7 @@ class TLDetector(object):
     def get_light_state_from_simulator(self, light):
         # assuming that simulator publishes the traffic light status in the sequence of nearest available light.
         # rospy.logwarn('ligt data type is --------%s\\n', light)
-        tl_state = None
+        tl_state = TrafficLight.UNKNOWN
         # cnt = 1
         for tl in self.lights:
             distance = np.sqrt((tl.pose.pose.position.x - light.pose.pose.position.x)**2 + (tl.pose.pose.position.y - light.pose.pose.position.y)**2)
@@ -250,7 +254,7 @@ class TLDetector(object):
                 break
             # cnt +=1
             
-        rospy.loginfo('traffic light state = %d', tl_state)
+        # rospy.logwarn('traffic light state = %d', tl_state)
         # rospy.logwarn(tl_state)
         return tl_state
 
@@ -271,10 +275,21 @@ class TLDetector(object):
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
+        #TODO use light location to zoom in on traffic light in image
+        rospy.logwarn(len(cv_image))
+        cv_image = cv_image[201:600, :, :]
+        # output image will be of size 800x400
+
+        # save 100 images for training purposes
+        if self.save_images == True and self.saved_image_counter <= self.saved_image_limit:
+            rospy.logwarn('saving images')
+            if not (os.path.exists("./tl_images")):
+                os.mkdir("./tl_images")
+            cv2.imwrite("./tl_images/image{}.jpg".format(self.saved_image_counter), cv_image)
+            self.saved_image_counter += 1
+
         x, y = self.project_to_image_plane(light.pose.pose.position)
         rospy.logdebug('project to image plane x, y = %f, %f', x, y)
-
-        #TODO use light location to zoom in on traffic light in image
 
         #Get classification
         # return self.light_classifier.get_classification(cv_image)
@@ -330,8 +345,21 @@ class TLDetector(object):
 
         if light:
             state = self.get_light_state(light)
-            # return light_wp, state
+
+            if state == 4:
+                color = 'Unknown'
+            elif state == 2:
+                color = 'Green'
+            elif state == 1:
+                color = 'Yellow'
+            elif state == 0:
+                color = 'Red'
+
+            rospy.loginfo('Traffic Light State: %s', color)
+
             return cls_light_stop_wpx, state
+
+        rospy.loginfo('Traffic Light State: %s', 'Unknown')
         self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
