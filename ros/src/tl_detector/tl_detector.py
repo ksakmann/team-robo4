@@ -234,7 +234,7 @@ class TLDetector(object):
                          piw_x*s_yaw + piw_y*c_yaw + t_y,
                          piw_z + t_z)
 
-            rospy.logwarn('fx=%f, fy=%f', fx, fy)
+            # rospy.logwarn('fx=%f, fy=%f', fx, fy)
             x = int(fx * -rot_trans[1]/rot_trans[0] + image_width/2)
             y = int(fy * -rot_trans[2]/rot_trans[0] + image_height/2)
             # rospy.logwarn('x=%f, y=%f', x, y)
@@ -276,20 +276,20 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         #TODO use light location to zoom in on traffic light in image
-        rospy.logwarn(len(cv_image))
+        # rospy.logwarn(len(cv_image))
         cv_image = cv_image[201:600, :, :]
         # output image will be of size 800x400
 
         # save 100 images for training purposes
         if self.save_images == True and self.saved_image_counter <= self.saved_image_limit:
-            rospy.logwarn('saving images')
+            rospy.loginfo('saving images')
             if not (os.path.exists("./tl_images")):
                 os.mkdir("./tl_images")
             cv2.imwrite("./tl_images/image{}.jpg".format(self.saved_image_counter), cv_image)
             self.saved_image_counter += 1
 
         x, y = self.project_to_image_plane(light.pose.pose.position)
-        rospy.logwarn('project to image plane x, y = %f, %f', x, y)
+        # rospy.loginfo('project to image plane x, y = %f, %f', x, y)
 
         #Get classification
         # return self.light_classifier.get_classification(cv_image)
@@ -323,7 +323,7 @@ class TLDetector(object):
                     elif light_wpx < cls_light_wpx:
                         cls_light_wpx = light_wpx
                         light = lp
-            # rospy.logwarn('cls_light_wpx = %d', cls_light_wpx)
+            rospy.loginfo('car_position = %d, cls_light_wpx = %d', car_position, cls_light_wpx)
 
             if cls_light_wpx:
                 min_dist = 0
