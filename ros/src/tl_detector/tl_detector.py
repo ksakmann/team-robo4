@@ -323,7 +323,7 @@ class TLDetector(object):
                     elif light_wpx < cls_light_wpx:
                         cls_light_wpx = light_wpx
                         light = lp
-            rospy.loginfo('car_position = %d, cls_light_wpx = %d', car_position, cls_light_wpx)
+            #rospy.loginfo('car_position = %d, cls_light_wpx = %d', car_position, cls_light_wpx)
 
             if cls_light_wpx:
                 min_dist = 0
