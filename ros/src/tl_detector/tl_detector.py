@@ -254,7 +254,7 @@ class TLDetector(object):
                 break
             # cnt +=1
             
-        rospy.logwarn('traffic light state = %d', tl_state)
+        # rospy.logwarn('traffic light state = %d', tl_state)
         # rospy.logwarn(tl_state)
         return tl_state
 
@@ -345,8 +345,21 @@ class TLDetector(object):
 
         if light:
             state = self.get_light_state(light)
-            # return light_wp, state
+
+            if state == 4:
+                color = 'Unknown'
+            elif state == 2:
+                color = 'Green'
+            elif state == 1:
+                color = 'Yellow'
+            elif state == 0:
+                color = 'Red'
+
+            rospy.loginfo('Traffic Light State: %s', color)
+
             return cls_light_stop_wpx, state
+
+        rospy.loginfo('Traffic Light State: %s', 'Unknown')
         self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
