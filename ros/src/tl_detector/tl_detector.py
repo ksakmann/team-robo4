@@ -316,7 +316,7 @@ class TLDetector(object):
             #TODO find the closest visible traffic light (if one exists)
             for lp in self.lights:
                 light_wpx = self.get_closest_waypoint_birectional(lp.pose.pose)
-                if light_wpx >= car_position:
+                if light_wpx >= car_position and (light_wpx - car_position) <= 50:
                     if cls_light_wpx is None:
                         cls_light_wpx = light_wpx
                         light = lp
@@ -325,21 +325,22 @@ class TLDetector(object):
                         light = lp
             # rospy.logwarn('cls_light_wpx = %d', cls_light_wpx)
 
-            min_dist = 0
-            for slp in stop_line_positions:
-                #rospy.logwarn('slp x=%f, y=%f', slp[0], slp[1])
-                light_stop_pose = Pose()
-                light_stop_pose.position.x = slp[0]
-                light_stop_pose.position.y = slp[1]
-                light_stop_wp = self.get_closest_waypoint_birectional(light_stop_pose) 
-                # rospy.logwarn('light_stop_wp = %d', light_stop_wp)
-                dist = abs(cls_light_wpx - light_stop_wp)
-                if min_dist == 0:
-                    min_dist = dist
-                    cls_light_stop_wpx = light_stop_wp
-                elif dist < min_dist:
-                    min_dist = dist
-                    cls_light_stop_wpx = light_stop_wp
+            if cls_light_wpx:
+                min_dist = 0
+                for slp in stop_line_positions:
+                    #rospy.logwarn('slp x=%f, y=%f', slp[0], slp[1])
+                    light_stop_pose = Pose()
+                    light_stop_pose.position.x = slp[0]
+                    light_stop_pose.position.y = slp[1]
+                    light_stop_wp = self.get_closest_waypoint_birectional(light_stop_pose) 
+                    # rospy.logwarn('light_stop_wp = %d', light_stop_wp)
+                    dist = abs(cls_light_wpx - light_stop_wp)
+                    if min_dist == 0:
+                        min_dist = dist
+                        cls_light_stop_wpx = light_stop_wp
+                    elif dist < min_dist:
+                        min_dist = dist
+                        cls_light_stop_wpx = light_stop_wp
             # rospy.logwarn('cls_light_stop_wpx = %d', cls_light_stop_wpx)
 
 
