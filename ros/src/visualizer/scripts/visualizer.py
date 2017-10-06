@@ -48,9 +48,24 @@ class Visualizer(object):
 
     
     def traffic_cb(self, msg):
+        b_clear = False
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
-        self.thisapp.plotTrafficLight(x, y)
+        if msg.state == 0:
+            color = 'r'
+        elif msg.state == 1:
+            color = 'y'
+        elif msg.state == 2:
+            color = 'g'
+        elif msg.state == 4:
+            b_clear = True
+        else:
+            rospy.error('Unexpected traffic light status')
+
+        if not b_clear:
+            self.thisapp.plotTrafficLight(x, y, color)
+        else:
+            self.thisapp.plotTrafficLightClear()
 
 
 if __name__ == '__main__':

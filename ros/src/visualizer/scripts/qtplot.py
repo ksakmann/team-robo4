@@ -37,8 +37,12 @@ class App(QtGui.QMainWindow):
         self.hVehicle.setData([x], [y])
 
 
-    def plotTrafficLight(self, x, y):
-        self.hTrafficLight.setData([x], [y])
+    def plotTrafficLight(self, x, y, color):
+        self.hTrafficLight.setData([x], [y], symbolBrush=color, symbolPen=color)
+
+    
+    def plotTrafficLightClear(self):
+        self.hTrafficLight.setData([], [], symbolBrush=color, symbolPen=color)
 
 
 if __name__ == '__main__':
