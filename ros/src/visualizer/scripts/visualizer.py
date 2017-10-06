@@ -4,7 +4,7 @@ import sys
 import numpy as np
 
 import rospy
-from styx_msgs.msg import Lane
+from styx_msgs.msg import Lane, TrafficLight
 from geometry_msgs.msg import PoseStamped, Pose
 from qtplot import App
 from pyqtgraph.Qt import QtCore, QtGui
@@ -24,8 +24,9 @@ class Visualizer(object):
         self.thisapp.show()
 
         # self.waypoints = None
-        self.waypoints_sub = rospy.Subscriber('/base_waypoints', Lane       , self.waypoints_cb)
-        self.pose_sub      = rospy.Subscriber('/current_pose'  , PoseStamped, self.pose_cb)
+        self.waypoints_sub = rospy.Subscriber('/base_waypoints'     , Lane        , self.waypoints_cb)
+        self.pose_sub      = rospy.Subscriber('/current_pose'       , PoseStamped , self.pose_cb)
+        # self.traffic_sub   = rospy.Subscriber('/traffic_waypoints_2', TrafficLight, self.traffic_cb)
 
         rate = rospy.Rate(10) # 50Hz
 
@@ -49,6 +50,13 @@ class Visualizer(object):
         x = msg.pose.position.x
         y = msg.pose.position.y
         self.thisapp.plotVehicle(x, y)
+
+    
+    # def traffic_cb(self, msg):
+        # rospy.loginfo('Traffic light message received')
+        # x = msg.pose.position.x
+        # y = msg.pose.position.y
+        # self.thisapp.plotTrafficLight(x, y)
 
 
 if __name__ == '__main__':

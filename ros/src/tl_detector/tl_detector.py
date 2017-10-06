@@ -43,6 +43,7 @@ class TLDetector(object):
         self.config = yaml.load(config_string)
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
+        self.upcoming_light_pub = rospy.Publisher('/traffic_waypoint_2', TrafficLight, queue_size=1)
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
@@ -51,6 +52,7 @@ class TLDetector(object):
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
+        self.last_traffic_light = TrafficLight()
         self.state_count = 0
         self.save_images = False
         self.saved_image_counter = 1
@@ -91,16 +93,32 @@ class TLDetector(object):
         of times till we start using it. Otherwise the previous stable state is
         used.
         '''
+
+        traffic_light = TrafficLight()
+        traffic_light.header.stamp = rospy.Time.now()
+        traffic_light.header.frame_id = '/world'
+        traffic_light.state = state
+        if (light_wp != -1) and (self.waypoints is not None):
+            traffic_light.pose.pose.position.x = self.waypoints.waypoints[light_wp].pose.pose.position.x
+            traffic_light.pose.pose.position.y = self.waypoints.waypoints[light_wp].pose.pose.position.y
+            traffic_light.pose.pose.position.z = self.waypoints.waypoints[light_wp].pose.pose.position.z
+
+
         if self.state != state:
             self.state_count = 0
             self.state = state
+            self.traffic_light = traffic_light
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
+            self.last_traffic_light = self.traffic_light
             self.upcoming_red_light_pub.publish(Int32(light_wp))
+            self.upcoming_light_pub.publish(traffic_light)
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+            self.upcoming_light_pub.publish(self.last_traffic_light)
+
         self.state_count += 1
 
     def get_closest_waypoint(self, pose):
