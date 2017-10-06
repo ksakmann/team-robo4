@@ -356,8 +356,7 @@ class TLDetector(object):
             elif state == 0:
                 color = 'Red'
 
-            rospy.loginfo('Traffic Light State: %s', color)
-
+            rospy.loginfo('Car Index: %d, Closest Traffic Light Index: %d, Traffic Light State: %s', car_position, cls_light_wpx, color)
             return cls_light_stop_wpx, state
 
         rospy.loginfo('Traffic Light State: %s', 'Unknown')
