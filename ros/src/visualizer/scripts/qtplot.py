@@ -24,9 +24,9 @@ class App(QtGui.QMainWindow):
         self.fig.setLabel('left', text='Y', units='m')
         self.fig.showGrid(x=True, y=True, alpha=0.5)
 
-        self.hMap          = self.fig.plot(pen='y')
-        self.hVehicle      = self.fig.plot(pen=None, symbol='o')
-        self.hTrafficLight = self.fig.plot(pen=None, symbol='s')
+        self.hMap          = self.fig.plot(pen='w' , symbolBrush=None, symbolPen='y', symbol='o', symbolSize=10)
+        self.hVehicle      = self.fig.plot(pen=None, symbolBrush='b' , symbolPen='b', symbol='o', symbolSize=20)
+        self.hTrafficLight = self.fig.plot(pen=None, symbolBrush='r' , symbolPen='r', symbol='o', symbolSize=30)
 
 
     def plotMap(self, x, y):
