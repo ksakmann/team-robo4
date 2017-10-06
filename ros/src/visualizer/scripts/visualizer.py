@@ -24,44 +24,37 @@ class Visualizer(object):
         self.thisapp.show()
 
         # self.waypoints = None
-        self.waypoints_sub = rospy.Subscriber('/base_waypoints'     , Lane        , self.waypoints_cb)
-        self.pose_sub      = rospy.Subscriber('/current_pose'       , PoseStamped , self.pose_cb)
-        # self.traffic_sub   = rospy.Subscriber('/traffic_waypoints_2', TrafficLight, self.traffic_cb)
+        self.waypoints_sub = rospy.Subscriber('/base_waypoints'    , Lane        , self.waypoints_cb)
+        self.pose_sub      = rospy.Subscriber('/current_pose'      , PoseStamped , self.pose_cb)
+        self.traffic_sub   = rospy.Subscriber('/traffic_waypoint_2', TrafficLight, self.traffic_cb)
 
-        rate = rospy.Rate(10) # 50Hz
-
-        # rospy.spin()
+        rate = rospy.Rate(10)
+        
         while not rospy.is_shutdown():
-            self.thisapp._update()
             pg.QtGui.QApplication.processEvents()
             rate.sleep()
 
 
     def waypoints_cb(self, msg):
-        # self.waypoints = msg
-        rospy.loginfo('Waypoints message received')
         x = np.asarray([this.pose.pose.position.x for this in msg.waypoints])
         y = np.asarray([this.pose.pose.position.y for this in msg.waypoints])
         self.thisapp.plotMap(x, y)
 
 
     def pose_cb(self, msg):
-        # rospy.loginfo('Vehicle pose received')
         x = msg.pose.position.x
         y = msg.pose.position.y
         self.thisapp.plotVehicle(x, y)
 
     
-    # def traffic_cb(self, msg):
-        # rospy.loginfo('Traffic light message received')
-        # x = msg.pose.position.x
-        # y = msg.pose.position.y
-        # self.thisapp.plotTrafficLight(x, y)
+    def traffic_cb(self, msg):
+        x = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
+        self.thisapp.plotTrafficLight(x, y)
 
 
 if __name__ == '__main__':
     try:
-        print(sys.argv)
         Visualizer(sys.argv)
     except rospy.ROSInterruptException:
         rospy.logerr('Could not start visualizer node.')

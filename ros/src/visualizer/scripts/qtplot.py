@@ -8,7 +8,6 @@ class App(QtGui.QMainWindow):
     def __init__(self, parent=None):
         super(App, self).__init__(parent)
 
-
         #### Create Gui Elements ###########
         self.mainbox = QtGui.QWidget()
         self.setCentralWidget(self.mainbox)
@@ -20,76 +19,26 @@ class App(QtGui.QMainWindow):
         self.label = QtGui.QLabel()
         self.mainbox.layout().addWidget(self.label)
 
-        # self.view = self.canvas.addViewBox()
-        # self.view.setAspectLocked(True)
-        # self.view.setRange(QtCore.QRectF(0, 0, 200, 200))
-
-        #  image plot
-        # self.img = pg.ImageItem(border='w')
-        # self.view.addItem(self.img)
-
-        # self.canvas.nextRow()
-        #  line plot
         self.fig = self.canvas.addPlot()
         self.fig.setLabel('bottom', text='X', units='m')
         self.fig.setLabel('left', text='Y', units='m')
         self.fig.showGrid(x=True, y=True, alpha=0.5)
-        # self.otherplot.setXRange(-1, 1)
-        # self.otherplot.setYRange(-1, 1)
 
-        self.hMap     = self.fig.plot(pen='y')
-        self.hVehicle = self.fig.plot(pen=None, symbol='o')
+        self.hMap          = self.fig.plot(pen='y')
+        self.hVehicle      = self.fig.plot(pen=None, symbol='o')
+        self.hTrafficLight = self.fig.plot(pen=None, symbol='s')
 
-        #### Set Data  #####################
-        # self.theta = np.linspace(0, 1., 100) * np.pi * 2
-        # self.x = np.cos(self.theta)
-        # self.y = np.sin(self.theta)
-        # self.nYaw = 2
-
-        # self.X, self.Y = np.meshgrid(self.x,self.x)
-        
-        # self.h1.setData(self.x, self.y)
-
-        self.counter = 0
-        self.fps = 0.
-        self.lastupdate = time.time()
-
-        #### Start  #####################
-        # self._update()
 
     def plotMap(self, x, y):
         self.hMap.setData(x, y)
 
+
     def plotVehicle(self, x, y):
         self.hVehicle.setData([x], [y])
 
-    def _update(self):
-        pass
 
-    #     # self.data = np.sin(self.X/3.+self.counter/9.)*np.cos(self.Y/3.+self.counter/9.)
-    #     # self.ydata = np.sin(self.x/3. + self.counter/9.)
-    #     # self.ydata = np.sin(self.x/3. + self.counter)
-
-    #     # self.img.setImage(self.data)
-    #     # self.h2.setData(self.ydata)
-
-    #     now = time.time()
-    #     # dt = (now-self.lastupdate)
-    #     # if dt <= 0:
-    #         # dt = 0.000000000001
-    #     # fps2 = 1.0 / dt
-    #     # self.lastupdate = now
-    #     # self.fps = self.fps * 0.9 + fps2 * 0.1
-    #     # tx = 'Mean Frame Rate:  {fps:.3f} FPS'.format(fps=self.fps )
-    #     # self.label.setText(tx)
-    #     # QtCore.QTimer.singleShot(1, self._update)
-    #     # self.counter += 1
-
-    #     self.theta = self.nYaw * now
-    #     self.x = np.cos(self.theta)
-    #     self.y = np.sin(self.theta)
-
-    #     self.h2.setData([self.x], [self.y])
+    def plotTrafficLight(self, x, y):
+        self.hTrafficLight.setData([x], [y])
 
 
 if __name__ == '__main__':
