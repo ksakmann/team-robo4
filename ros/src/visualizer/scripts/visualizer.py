@@ -14,14 +14,13 @@ import pyqtgraph as pg
 # import time
 # import numpy as np
 
+# graph_obj = None
 
-class Visualizer(object):
+class Visualizer:
     def __init__(self, argv):
         rospy.init_node('visualizer')
 
-        app = QtGui.QApplication(sys.argv)
-        self.thisapp = App()
-        self.thisapp.show()
+        self.argv = argv
 
         # self.waypoints = None
         self.waypoints_sub = rospy.Subscriber('/base_waypoints'    , Lane        , self.waypoints_cb)
@@ -30,11 +29,19 @@ class Visualizer(object):
 
         self.state = TrafficLight.UNKNOWN
 
-        rate = rospy.Rate(1)
-        
+        self.rate = rospy.Rate(1)
+
+
+    def run_loop(self):
+
+        app = QtGui.QApplication(self.argv)
+        self.thisapp = App()
+        self.thisapp.show()
+        QtGui.QApplication.instance().processEvents()
         while not rospy.is_shutdown():
-            pg.QtGui.QApplication.processEvents()
-            rate.sleep()
+            # pg.QtGui.QApplication.processEvents()
+            QtGui.QApplication.instance().processEvents()
+            self.rate.sleep()
 
 
     def waypoints_cb(self, msg):
@@ -53,7 +60,7 @@ class Visualizer(object):
 
         if self.state != msg.state: # state change, game on
             
-            self.state = state
+            self.state = msg.state
 
             b_clear = False
             
@@ -70,6 +77,8 @@ class Visualizer(object):
 
             if not b_clear:
                 rospy.logwarn('Plot traffic light visual')
+                x = msg.pose.pose.position.x
+                y = msg.pose.pose.position.y
                 self.thisapp.plotTrafficLight(x, y, color)
             else:
                 rospy.logwarn('Clearing traffic light visual')
@@ -82,6 +91,8 @@ class Visualizer(object):
 
 if __name__ == '__main__':
     try:
-        Visualizer(sys.argv)
+        global graph_obj
+        graph_obj = Visualizer(sys.argv)
+        graph_obj.run_loop()
     except rospy.ROSInterruptException:
         rospy.logerr('Could not start visualizer node.')
