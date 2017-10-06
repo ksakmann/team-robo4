@@ -28,7 +28,9 @@ class Visualizer(object):
         self.pose_sub      = rospy.Subscriber('/current_pose'      , PoseStamped , self.pose_cb)
         self.traffic_sub   = rospy.Subscriber('/traffic_waypoint_2', TrafficLight, self.traffic_cb)
 
-        rate = rospy.Rate(10)
+        self.state = TrafficLight.UNKNOWN
+
+        rate = rospy.Rate(1)
         
         while not rospy.is_shutdown():
             pg.QtGui.QApplication.processEvents()
@@ -48,24 +50,34 @@ class Visualizer(object):
 
     
     def traffic_cb(self, msg):
-        b_clear = False
-        x = msg.pose.pose.position.x
-        y = msg.pose.pose.position.y
-        if msg.state == 0:
-            color = 'r'
-        elif msg.state == 1:
-            color = 'y'
-        elif msg.state == 2:
-            color = 'g'
-        elif msg.state == 4:
-            b_clear = True
-        else:
-            rospy.error('Unexpected traffic light status')
 
-        if not b_clear:
-            self.thisapp.plotTrafficLight(x, y, color)
-        else:
-            self.thisapp.plotTrafficLightClear()
+        if self.state != msg.state: # state change, game on
+            
+            self.state = state
+
+            b_clear = False
+            
+            if msg.state == 0:
+                color = 'r'
+            elif msg.state == 1:
+                color = 'y'
+            elif msg.state == 2:
+                color = 'g'
+            elif msg.state == 4:
+                b_clear = True
+            else:
+                rospy.error('Unexpected traffic light status')
+
+            if not b_clear:
+                rospy.logwarn('Plot traffic light visual')
+                self.thisapp.plotTrafficLight(x, y, color)
+            else:
+                rospy.logwarn('Clearing traffic light visual')
+                self.thisapp.plotTrafficLightClear()
+
+        else: 
+
+            pass
 
 
 if __name__ == '__main__':

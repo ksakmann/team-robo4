@@ -70,7 +70,7 @@ class WaypointUpdater(object):
         self.orientation = msg.pose.orientation
         quaternion = [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]
         self.roll, self.pitch, self.yaw = tf.transformations.euler_from_quaternion(quaternion)
-        rospy.logwarn('pose : %s, %s, %s', self.x, self.y, self.z)
+        # rospy.logwarn('pose : %s, %s, %s', self.x, self.y, self.z)
 
     def get_next_waypoints(self):
 
@@ -78,7 +78,7 @@ class WaypointUpdater(object):
         ind = self.closest
 
         if self.yaw is None or self.waypoints is None or ind is None:
-            rospy.logwarn('yaw,closest : %s, %s', self.yaw, self.closest)
+            # rospy.logwarn('yaw,closest : %s, %s', self.yaw, self.closest)
             return
 
         wp = self.waypoints[ind]
@@ -91,7 +91,7 @@ class WaypointUpdater(object):
         for i in range(LOOKAHEAD_WPS):
             lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
 
-        rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
+        # rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
         return lane
 
 
@@ -112,7 +112,7 @@ class WaypointUpdater(object):
 
     def get_closest_waypoint_index(self):
 
-        rospy.logwarn('x,y : %s, %s ', self.x, self.y)
+        # rospy.logwarn('x,y : %s, %s ', self.x, self.y)
 
         if self.x is None or self.y is None or self.waypoints is None:
             return
@@ -126,8 +126,8 @@ class WaypointUpdater(object):
             if wp_distance < distance:
                 distance = wp_distance
                 self.closest = ind
-        rospy.logwarn('closest : %s, %s ', self.waypoints[self.closest].pose.pose.position.x,
-                      self.waypoints[self.closest].pose.pose.position.y)
+        # rospy.logwarn('closest : %s, %s ', self.waypoints[self.closest].pose.pose.position.x,
+                    #   self.waypoints[self.closest].pose.pose.position.y)
 
     def waypoints_cb(self, msg):
         self.waypoints = msg.waypoints

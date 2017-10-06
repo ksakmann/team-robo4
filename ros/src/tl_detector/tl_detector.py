@@ -86,6 +86,11 @@ class TLDetector(object):
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
 
+        if light_wp is None:
+            rospy.logerr('Light index is NoneType')
+
+        light_wp_orig = light_wp
+
         '''
         Publish upcoming red lights at camera frequency.
         Each predicted state has to occur `STATE_COUNT_THRESHOLD` number
@@ -96,30 +101,35 @@ class TLDetector(object):
         if self.state != state:
             self.state_count = 0
             self.state = state
-            curr_light_wp = None
+            # curr_light_wp = None
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
             self.upcoming_red_light_pub.publish(Int32(light_wp))
-            curr_light_wp = light_wp
+            # curr_light_wp = light_wp
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-            curr_light_wp = self.last_wp
+            # curr_light_wp = self.last_wp
 
 
         self.state_count += 1
 
-        # For debugging publish red light location
-        if (curr_light_wp != -1) and (curr_light_wp is not None):
-            traffic_light = TrafficLight()
-            traffic_light.header.stamp = rospy.Time.now()
-            traffic_light.header.frame_id = '/world'
+        # For debugging publish light location and color
+        # If location index is -1 publish traffic light unknown status with arbitrary 0,0,0 location
+        traffic_light = TrafficLight()
+        traffic_light.header.stamp = rospy.Time.now()
+        traffic_light.header.frame_id = '/world'
+        if (light_wp_orig == -1) or (self.waypoints is None): # Didn't find traffic light or don't have waypoints yet
+            # rospy.logwarn('light index: %d', light_wp_orig)
+            # rospy.logwarn('Waypoints found: %r', self.waypoints is not None)
+            traffic_light.state = TrafficLight.UNKNOWN
+        else:
             traffic_light.state = state
-            traffic_light.pose.pose.position.x = self.waypoints.waypoints[curr_light_wp].pose.pose.position.x
-            traffic_light.pose.pose.position.y = self.waypoints.waypoints[curr_light_wp].pose.pose.position.y
-            traffic_light.pose.pose.position.z = self.waypoints.waypoints[curr_light_wp].pose.pose.position.z
-            self.upcoming_light_pub.publish(traffic_light)
+            traffic_light.pose.pose.position.x = self.waypoints.waypoints[light_wp_orig].pose.pose.position.x
+            traffic_light.pose.pose.position.y = self.waypoints.waypoints[light_wp_orig].pose.pose.position.y
+            traffic_light.pose.pose.position.z = self.waypoints.waypoints[light_wp_orig].pose.pose.position.z
+        self.upcoming_light_pub.publish(traffic_light)
 
 
     def get_closest_waypoint(self, pose):
@@ -346,6 +356,7 @@ class TLDetector(object):
 
             if cls_light_wpx:
                 min_dist = 0
+                cls_light_stop_wpx = -1
                 for slp in stop_line_positions:
                     #rospy.logwarn('slp x=%f, y=%f', slp[0], slp[1])
                     light_stop_pose = Pose()
@@ -360,27 +371,30 @@ class TLDetector(object):
                     elif dist < min_dist:
                         min_dist = dist
                         cls_light_stop_wpx = light_stop_wp
+
+                state = self.get_light_state(light)
+                return cls_light_stop_wpx, state
             # rospy.logwarn('cls_light_stop_wpx = %d', cls_light_stop_wpx)
 
 
-        if light:
-            state = self.get_light_state(light)
+        # if light:
+        #     state = self.get_light_state(light)
 
-            if state == 4:
-                color = 'Unknown'
-            elif state == 2:
-                color = 'Green'
-            elif state == 1:
-                color = 'Yellow'
-            elif state == 0:
-                color = 'Red'
+        #     if state == 4:
+        #         color = 'Unknown'
+        #     elif state == 2:
+        #         color = 'Green'
+        #     elif state == 1:
+        #         color = 'Yellow'
+        #     elif state == 0:
+        #         color = 'Red'
 
-            rospy.loginfo('Traffic Light State: %s', color)
+        #     rospy.loginfo('Traffic Light State: %s', color)
 
-            return cls_light_stop_wpx, state
+        #     return cls_light_stop_wpx, state
 
-        rospy.loginfo('Traffic Light State: %s', 'Unknown')
-        self.waypoints = None
+        # rospy.loginfo('Traffic Light State: %s', 'Unknown')
+        # self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':

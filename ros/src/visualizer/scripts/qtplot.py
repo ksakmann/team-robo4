@@ -42,7 +42,7 @@ class App(QtGui.QMainWindow):
 
     
     def plotTrafficLightClear(self):
-        self.hTrafficLight.setData([], [], symbolBrush=color, symbolPen=color)
+        self.hTrafficLight.clear()
 
 
 if __name__ == '__main__':
