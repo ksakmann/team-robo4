@@ -234,7 +234,7 @@ class TLDetector(object):
                          piw_x*s_yaw + piw_y*c_yaw + t_y,
                          piw_z + t_z)
 
-            rospy.logdebug('fx=%f, fy=%f', fx, fy)
+            # rospy.logwarn('fx=%f, fy=%f', fx, fy)
             x = int(fx * -rot_trans[1]/rot_trans[0] + image_width/2)
             y = int(fy * -rot_trans[2]/rot_trans[0] + image_height/2)
             # rospy.logwarn('x=%f, y=%f', x, y)
@@ -276,20 +276,20 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         #TODO use light location to zoom in on traffic light in image
-        rospy.logwarn(len(cv_image))
+        # rospy.logwarn(len(cv_image))
         cv_image = cv_image[201:600, :, :]
         # output image will be of size 800x400
 
         # save 100 images for training purposes
         if self.save_images == True and self.saved_image_counter <= self.saved_image_limit:
-            rospy.logwarn('saving images')
+            rospy.loginfo('saving images')
             if not (os.path.exists("./tl_images")):
                 os.mkdir("./tl_images")
             cv2.imwrite("./tl_images/image{}.jpg".format(self.saved_image_counter), cv_image)
             self.saved_image_counter += 1
 
         x, y = self.project_to_image_plane(light.pose.pose.position)
-        rospy.logdebug('project to image plane x, y = %f, %f', x, y)
+        # rospy.loginfo('project to image plane x, y = %f, %f', x, y)
 
         #Get classification
         # return self.light_classifier.get_classification(cv_image)
@@ -316,30 +316,31 @@ class TLDetector(object):
             #TODO find the closest visible traffic light (if one exists)
             for lp in self.lights:
                 light_wpx = self.get_closest_waypoint_birectional(lp.pose.pose)
-                if light_wpx >= car_position:
+                if light_wpx >= car_position and (light_wpx - car_position) <= 50:
                     if cls_light_wpx is None:
                         cls_light_wpx = light_wpx
                         light = lp
                     elif light_wpx < cls_light_wpx:
                         cls_light_wpx = light_wpx
                         light = lp
-            # rospy.logwarn('cls_light_wpx = %d', cls_light_wpx)
+            #rospy.loginfo('car_position = %d, cls_light_wpx = %d', car_position, cls_light_wpx)
 
-            min_dist = 0
-            for slp in stop_line_positions:
-                #rospy.logwarn('slp x=%f, y=%f', slp[0], slp[1])
-                light_stop_pose = Pose()
-                light_stop_pose.position.x = slp[0]
-                light_stop_pose.position.y = slp[1]
-                light_stop_wp = self.get_closest_waypoint_birectional(light_stop_pose) 
-                # rospy.logwarn('light_stop_wp = %d', light_stop_wp)
-                dist = abs(cls_light_wpx - light_stop_wp)
-                if min_dist == 0:
-                    min_dist = dist
-                    cls_light_stop_wpx = light_stop_wp
-                elif dist < min_dist:
-                    min_dist = dist
-                    cls_light_stop_wpx = light_stop_wp
+            if cls_light_wpx:
+                min_dist = 0
+                for slp in stop_line_positions:
+                    #rospy.logwarn('slp x=%f, y=%f', slp[0], slp[1])
+                    light_stop_pose = Pose()
+                    light_stop_pose.position.x = slp[0]
+                    light_stop_pose.position.y = slp[1]
+                    light_stop_wp = self.get_closest_waypoint_birectional(light_stop_pose) 
+                    # rospy.logwarn('light_stop_wp = %d', light_stop_wp)
+                    dist = abs(cls_light_wpx - light_stop_wp)
+                    if min_dist == 0:
+                        min_dist = dist
+                        cls_light_stop_wpx = light_stop_wp
+                    elif dist < min_dist:
+                        min_dist = dist
+                        cls_light_stop_wpx = light_stop_wp
             # rospy.logwarn('cls_light_stop_wpx = %d', cls_light_stop_wpx)
 
 
@@ -355,8 +356,7 @@ class TLDetector(object):
             elif state == 0:
                 color = 'Red'
 
-            rospy.loginfo('Traffic Light State: %s', color)
-
+            rospy.loginfo('Car Index: %d, Closest Traffic Light Index: %d, Traffic Light State: %s', car_position, cls_light_wpx, color)
             return cls_light_stop_wpx, state
 
         rospy.loginfo('Traffic Light State: %s', 'Unknown')
