@@ -135,7 +135,7 @@ class WaypointUpdater(object):
                                     + (self.z - wp.pose.pose.position.z) ** 2)
             if wp_distance < distance:
                 distance = wp_distance
-                self.closest = i
+                self.closest = ind
 
         rospy.loginfo('closest : %s, %s ',
                       self.waypoints[self.closest].pose.pose.position.x,
