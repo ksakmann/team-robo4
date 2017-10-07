@@ -122,12 +122,7 @@ class WaypointUpdater(object):
 
 
     def get_closest_waypoint_index(self):
-<<<<<<< HEAD
         rospy.loginfo('x,y : %s, %s ', self.x, self.y)
-=======
-
-        # rospy.logwarn('x,y : %s, %s ', self.x, self.y)
->>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
 
         if self.x is None or self.y is None or self.waypoints is None:
             return
@@ -140,16 +135,11 @@ class WaypointUpdater(object):
                                     + (self.z - wp.pose.pose.position.z) ** 2)
             if wp_distance < distance:
                 distance = wp_distance
-                self.closest = ind
-<<<<<<< HEAD
+                self.closest = i
 
         rospy.loginfo('closest : %s, %s ',
                       self.waypoints[self.closest].pose.pose.position.x,
                       self.waypoints[self.closest].pose.pose.position.y)
-=======
-        # rospy.logwarn('closest : %s, %s ', self.waypoints[self.closest].pose.pose.position.x,
-                    #   self.waypoints[self.closest].pose.pose.position.y)
->>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
 
     def waypoints_cb(self, msg):
         self.waypoints = msg.waypoints
@@ -168,9 +158,6 @@ class WaypointUpdater(object):
         rospy.logwarn('traffic_waypoint: %s', self.tw_id)
         rospy.loginfo('closest index: %s', self.closest)
         rospy.loginfo('initial v: %s', v0)
-
-        # solve the quadratic equation.
-        # qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
 
         if self.final_waypoints is not None:
             if self.tw_id != -1:
@@ -231,9 +218,6 @@ class WaypointUpdater(object):
         rospy.loginfo('obstacle waypoint: %s', self.ow_id)
         #rospy.logwarn('closest index: %s', self.closest)
         #rospy.logwarn('initial v: %s', v0)
-
-        # solve the quadratic equation.
-        qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
 
         if self.final_waypoints is not None:
             if self.ow_id != -1:
