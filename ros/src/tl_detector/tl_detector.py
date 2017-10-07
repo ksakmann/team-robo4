@@ -256,13 +256,8 @@ class TLDetector(object):
                 tl_state = tl.state
                 break
             # cnt +=1
-            
-<<<<<<< HEAD
-        #rospy.logwarn('traffic light state = %d', tl_state)
-=======
+
         # rospy.logwarn('traffic light state = %d', tl_state)
->>>>>>> origin/waypoint-updater-full
-        # rospy.logwarn(tl_state)
         return tl_state
 
 
@@ -282,12 +277,6 @@ class TLDetector(object):
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
-<<<<<<< HEAD
-        x, y = self.project_to_image_plane(light.pose.pose.position)
-        #rospy.logwarn('project to image plane x, y = %f, %f', x, y)
-
-=======
->>>>>>> origin/waypoint-updater-full
         #TODO use light location to zoom in on traffic light in image
         rospy.logwarn(len(cv_image))
         cv_image = cv_image[201:600, :, :]
@@ -358,12 +347,10 @@ class TLDetector(object):
 
 
         if light:
-<<<<<<< HEAD
             if ((min_dist < 50) & (min_dist>0)):
                 state = self.get_light_state(light)
                 # return light_wp, state
                 return cls_light_stop_wpx, state
-=======
             state = self.get_light_state(light)
 
             if state == 4:
@@ -380,7 +367,6 @@ class TLDetector(object):
             return cls_light_stop_wpx, state
 
         rospy.loginfo('Traffic Light State: %s', 'Unknown')
->>>>>>> origin/waypoint-updater-full
         self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 

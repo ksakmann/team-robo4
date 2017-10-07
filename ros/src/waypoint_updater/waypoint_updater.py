@@ -54,11 +54,7 @@ class WaypointUpdater(object):
         self.waypoints = None
         self.no_waypoints = None
         self.closest = None	# closest waypoint index to current position.
-<<<<<<< HEAD
 	self.target_velocity = 10.0	# target velocity is 10m/sec
-=======
-        self.target_velocity = 10.0 * 0.44704	# target velocity is 10mph. in our unit, m/sec
->>>>>>> origin/waypoint-updater-full
 
         rospy.spin()
 
@@ -72,16 +68,7 @@ class WaypointUpdater(object):
         self.orientation = msg.pose.orientation
         quaternion = [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]
         self.roll, self.pitch, self.yaw = tf.transformations.euler_from_quaternion(quaternion)
-<<<<<<< HEAD
-        # rospy.logwarn('pose : %s, %s, %s', self.x, self.y, self.z)
-	
-	# if self.tw_id == -1:
-	#     self.final_waypoints = self.get_next_waypoints()
-	
-	if self.final_waypoints is not None:
-	    self.final_waypoints_pub.publish(self.final_waypoints)
-	
-=======
+
         rospy.logdebug('pose : %s, %s, %s', self.x, self.y, self.z)
 
         # if self.tw_id == -1:
@@ -89,8 +76,6 @@ class WaypointUpdater(object):
 
         if self.final_waypoints is not None:
             self.final_waypoints_pub.publish(self.final_waypoints)
-
->>>>>>> origin/waypoint-updater-full
 
     def get_next_waypoints(self):
 
@@ -111,11 +96,7 @@ class WaypointUpdater(object):
         for i in range(LOOKAHEAD_WPS):
             lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
 
-<<<<<<< HEAD
-        # rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
-=======
         rospy.loginfo('wp.pose.pose.position.x, wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
->>>>>>> origin/waypoint-updater-full
         return lane
 
 
@@ -135,12 +116,7 @@ class WaypointUpdater(object):
 
 
     def get_closest_waypoint_index(self):
-
-<<<<<<< HEAD
-        # rospy.logwarn('x,y : %s, %s ', self.x, self.y)
-=======
         rospy.loginfo('x,y : %s, %s ', self.x, self.y)
->>>>>>> origin/waypoint-updater-full
 
         if self.x is None or self.y is None or self.waypoints is None:
             return
@@ -154,14 +130,10 @@ class WaypointUpdater(object):
             if wp_distance < distance:
                 distance = wp_distance
                 self.closest = ind
-<<<<<<< HEAD
-        #rospy.logwarn('closest : %s, %s ', self.waypoints[self.closest].pose.pose.position.x,
-        #             self.waypoints[self.closest].pose.pose.position.y)
-=======
+
         rospy.loginfo('closest : %s, %s ',
                       self.waypoints[self.closest].pose.pose.position.x,
                       self.waypoints[self.closest].pose.pose.position.y)
->>>>>>> origin/waypoint-updater-full
 
     def waypoints_cb(self, msg):
         self.waypoints = msg.waypoints
@@ -171,46 +143,23 @@ class WaypointUpdater(object):
         # TODO: Callback for /traffic_waypoint message. Implement
         self.final_waypoints = self.get_next_waypoints()
         self.tw_id = msg.data
-<<<<<<< HEAD
-	if self.waypoints is not None:
-            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) #m/s
-	else:
-	    v0 = self.target_velocity
 
-	#rospy.logwarn('traffic_waypoint: %s', self.tw_id)
-	# rospy.logwarn('closest index: %s', self.closest)
-	# rospy.logwarn('initial v: %s', v0)
-	
-	# solve the quadratic equation.
-=======
         if self.waypoints is not None:
-            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.44704 # mph to m/s
+            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) # m/s
         else:
             v0 = self.target_velocity
 
-        rospy.loginfo('traffic_waypoint: %s', self.tw_id)
+        rospy.logwarn('traffic_waypoint: %s', self.tw_id)
         rospy.loginfo('closest index: %s', self.closest)
         rospy.loginfo('initial v: %s', v0)
 
         # solve the quadratic equation.
->>>>>>> origin/waypoint-updater-full
         qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
 
         if self.final_waypoints is not None:
             if self.tw_id != -1:
                 # compute distance from current position to red tl.
                 d = self.distance(self.waypoints, self.closest, self.tw_id)
-<<<<<<< HEAD
-	        #rospy.logwarn('tl distance: %s', d)
-
-                if self.chk_stp(v0, d):  #check whether or not can stop.
-		    # set deceleration value.
-		    if d != 0:
-		        decel = v0 * v0 /2/d
-		    else:
-		        decel = 0
-		    #rospy.logwarn('deceleration: %s', decel)
-=======
                 rospy.loginfo('tl distance: %s', d)
 
                 if self.chk_stp(v0, d):  #check whether or not can stop.
@@ -220,7 +169,6 @@ class WaypointUpdater(object):
                     else:
                         decel = 0
                     rospy.loginfo('deceleration: %s', decel)
->>>>>>> origin/waypoint-updater-full
 
                     for i in range(len(self.final_waypoints.waypoints)):
                         # distance from closest id to the point where set the vehicle speed this time.
@@ -250,15 +198,10 @@ class WaypointUpdater(object):
                     # accelerate with DBW_node.
                     set_v = self.target_velocity
                     self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
-<<<<<<< HEAD
-	    #rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[0]))
-	    #if ((self.tw_id != -1) & (self.tw_id > self.closest)):
-	    #    rospy.logwarn('set tl v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id - self.closest]))
-=======
+
             # rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[0]))
             #if ((self.tw_id != -1) & (self.tw_id > self.closest)):
             #    rospy.logwarn('set tl v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id - self.closest]))
->>>>>>> origin/waypoint-updater-full
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -269,11 +212,7 @@ class WaypointUpdater(object):
         else:
             v0 = self.target_velocity
 
-<<<<<<< HEAD
-        #rospy.logwarn('obstacle waypoint: %s', self.ow_id)
-=======
         rospy.loginfo('obstacle waypoint: %s', self.ow_id)
->>>>>>> origin/waypoint-updater-full
         #rospy.logwarn('closest index: %s', self.closest)
         #rospy.logwarn('initial v: %s', v0)
 
