@@ -7,9 +7,6 @@ import math
 import numpy as np
 import os
 
-<<<<<<< HEAD
-STATE_COUNT_THRESHOLD = 0
-=======
 import rospy
 from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped, Pose
@@ -22,7 +19,6 @@ from light_classification.tl_classifier import TLClassifier
 
 
 STATE_COUNT_THRESHOLD = 3
->>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
 
 
 def distance_xy(a, b):
@@ -139,51 +135,24 @@ class TLDetector(object):
 
         self.has_image = True
         self.camera_image = msg
-<<<<<<< HEAD
-        light_wp, state = self.process_traffic_lights()
 
-        '''
-        Publish upcoming red lights at camera frequency.
-        Each predicted state has to occur `STATE_COUNT_THRESHOLD` number
-        of times till we start using it. Otherwise the previous stable state is
-        used.
-        '''
-        # rospy.logwarn('self.state_count: %s', self.state_count)
-=======
         light_pose, light_wp_index, state = self.process_traffic_lights()
         
         # Publish upcoming red lights at camera frequency.
         # Each predicted state has to occur STATE_COUNT_THRESHOLD number
         # of times till we start using it. Otherwise the previous stable state is
         # used
->>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
+
         if self.state != state:
             self.state_count = 0
             self.state = state
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
-<<<<<<< HEAD
-            light_wp = light_wp if state == TrafficLight.RED else -1
-            self.last_wp = light_wp
-            # rospy.logwarn('self.last_wp :%s', self.last_wp)
-            self.upcoming_red_light_pub.publish(Int32(light_wp))
-        else:
-            self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-        self.state_count += 1
-        #rospy.logwarn('self.last_wp: %s', self.last_wp)
-
-    def get_closest_waypoint(self, pose):
-        """Identifies the closest path waypoint to the given position
-            https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
-        Args:
-            pose (Pose): position to match a waypoint to
-=======
             light_wp_index = light_wp_index if state == TrafficLight.RED else -1
             self.last_wp = light_wp_index
             self.upcoming_red_light_pub.publish(Int32(light_wp_index))
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
->>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
 
         self.state_count += 1
 
@@ -341,24 +310,7 @@ class TLDetector(object):
         return (x, y)
 
     def get_light_state_from_simulator(self, light):
-<<<<<<< HEAD
-        # assuming that simulator publishes the traffic light status in the sequence of nearest available light.
-        # rospy.logwarn('ligt data type is --------%s\\n', light)
-        tl_state = TrafficLight.UNKNOWN
-        # cnt = 1
-        for tl in self.lights:
-            distance = np.sqrt((tl.pose.pose.position.x - light.pose.pose.position.x)**2 + (tl.pose.pose.position.y - light.pose.pose.position.y)**2)
-            # rospy.logwarn('distance=%d, tl.state=%d', distance, tl.state)
-            if (distance < 50): 
-                tl_state = tl.state
-                break
-            # cnt +=1
-
-        # rospy.logwarn('traffic light state = %d', tl_state)
-        return tl_state
-=======
         """Returns the state of the traffic light"""
->>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
 
         return light.state
 
@@ -408,63 +360,12 @@ class TLDetector(object):
             closest_light_state (int): State of closest visible traffic light 
 
         """
-<<<<<<< HEAD
-        light = None
-        cls_light_wpx = None
-        cls_light_stop_wpx = None
-
-        # List of positions that correspond to the line to stop in front of for a given intersection
-        stop_line_positions = self.config['stop_line_positions']
-        if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
-
-            #TODO find the closest visible traffic light (if one exists)
-            for lp in self.lights:
-                light_wpx = self.get_closest_waypoint_birectional(lp.pose.pose)
-                # detect traffic signal near car_position approximate 50m.
-                if ((light_wpx >= car_position) & (light_wpx < car_position+50)):
-                    if cls_light_wpx is None:
-                        cls_light_wpx = light_wpx
-                        light = lp
-                    elif light_wpx < cls_light_wpx:
-                        cls_light_wpx = light_wpx
-                        light = lp
-            # rospy.logwarn('cls_light_wpx = %d', cls_light_wpx)
-
-            min_dist = 0
-            for slp in stop_line_positions:
-                #rospy.logwarn('slp x=%f, y=%f', slp[0], slp[1])
-                light_stop_pose = Pose()
-                light_stop_pose.position.x = slp[0]
-                light_stop_pose.position.y = slp[1]
-                light_stop_wp = self.get_closest_waypoint_birectional(light_stop_pose) 
-                # rospy.logwarn('light_stop_wp = %d', light_stop_wp)
-                dist = abs(cls_light_wpx - light_stop_wp)
-                if min_dist == 0:
-                    min_dist = dist
-                    cls_light_stop_wpx = light_stop_wp
-                elif dist < min_dist:
-                    min_dist = dist
-                    cls_light_stop_wpx = light_stop_wp
-            # rospy.logwarn('cls_light_stop_wpx = %d', cls_light_stop_wpx)
-=======
->>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
-
         closest_lightstop_pose = None
         closest_lightstop_wp_index = -1
         closest_light_state = TrafficLight.UNKNOWN
 
-<<<<<<< HEAD
-        if light:
-            if ((min_dist < 50) & (min_dist>0)):
-                state = self.get_light_state(light)
-                # return light_wp, state
-                return cls_light_stop_wpx, state
-            state = self.get_light_state(light)
-=======
         if self.pose is None or not self.is_lightstops_indexed:
             return closest_lightstop_pose, closest_lightstop_wp_index, closest_light_state
->>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
 
         car_pose = self.pose.pose
 
