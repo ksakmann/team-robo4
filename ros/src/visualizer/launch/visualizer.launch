@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="visualizer" type="visualizer.py" name="visualizer" cwd="node"/>
+</launch>
