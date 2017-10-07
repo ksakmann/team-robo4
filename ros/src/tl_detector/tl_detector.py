@@ -16,6 +16,10 @@ import os
 
 STATE_COUNT_THRESHOLD = 3
 
+def distance_xy(a, b):
+    return np.sqrt((a.position.x - b.position.x)**2 + (a.position.y - b.position.y)**2)
+
+
 class TLDetector(object):
     def __init__(self):
         rospy.init_node('tl_detector')
@@ -57,9 +61,24 @@ class TLDetector(object):
         self.saved_image_counter = 1
         self.saved_image_limit = 100
 
-        self.lightstops = self.load_lightstops(self.config['stop_line_positions'])
+        self.lightstops_pose = self.load_lightstops(self.config['stop_line_positions'])
+        self.lightstops_wp_index = []
+        self.is_lightstops_indexed = False
 
         rospy.spin()
+
+
+    def lightstops_index(self):
+        for lightstop_pose in self.lightstops_pose:
+            min_dist = 1e10
+            for i, wp in enumerate(self.waypoints.waypoints):
+                dist = distance_xy(lightstop_pose, wp.pose.pose)
+                if dist < min_dist:
+                    min_dist = dist
+                    index = i
+            self.lightstops_wp_index.append(index)
+        self.is_lightstops_indexed = True
+
 
     def load_lightstops(self, stop_line_positions):
         lightstops = []
@@ -82,6 +101,8 @@ class TLDetector(object):
 
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
+        if not self.is_lightstops_indexed:
+            self.lightstops_index()
 
 
     def traffic_cb(self, msg):
@@ -100,12 +121,10 @@ class TLDetector(object):
         """
         self.has_image = True
         self.camera_image = msg
-        light_pose, state = self.process_traffic_lights()
+        light_pose, light_wp_index, state = self.process_traffic_lights()
 
         # if light_wp is None:
             # rospy.logerr('Light index is NoneType')
-
-        light_pose_orig = light_pose
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -120,43 +139,25 @@ class TLDetector(object):
             # curr_light_wp = None
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
-            light_wp = light_wp if state == TrafficLight.RED else -1
-            self.last_wp = light_wp
-            self.upcoming_red_light_pub.publish(Int32(-1))
-            # self.upcoming_red_light_pub.publish(Int32(light_wp))
-            # curr_light_wp = light_wp
+            light_wp_index = light_wp_index if state == TrafficLight.RED else -1
+            self.last_wp = light_wp_index
+            self.upcoming_red_light_pub.publish(Int32(light_wp_index))
         else:
-            self.upcoming_red_light_pub.publish(Int32(-1))
-            # self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-            # curr_light_wp = self.last_wp
+            self.upcoming_red_light_pub.publish(Int32(self.last_wp))
 
 
         self.state_count += 1
 
         # For debugging publish light location and color
-        if light_pose_orig is not None:
-            traffic_light = TrafficLight()
-            traffic_light.header.stamp = rospy.Time.now()
-            traffic_light.header.frame_id = '/world'
-            traffic_light.state = state
-            traffic_light.pose.pose = light_pose_orig
-            self.upcoming_light_pub.publish(traffic_light)
+        traffic_light = TrafficLight()
+        traffic_light.header.stamp = rospy.Time.now()
+        traffic_light.header.frame_id = '/world'
+        traffic_light.state = state
+        
+        if light_pose is not None:
+            traffic_light.pose.pose = light_pose
 
-        # if (light_wp_orig == -1) or (self.waypoints is None): # Didn't find traffic light or don't have waypoints yet
-            # rospy.logwarn('light index: %d', light_wp_orig)
-            # rospy.logwarn('Waypoints found: %r', self.waypoints is not None)
-            # traffic_light.state = TrafficLight.UNKNOWN
-        # else:
-            # traffic_light.state = state
-            # traffic_light.pose = light_wp.pose
-            
-            # .pose.position.x = self.waypoints.waypoints[light_wp_orig].pose.pose.position.x
-            # traffic_light.pose.pose.position.y = self.waypoints.waypoints[light_wp_orig].pose.pose.position.y
-            # traffic_light.pose.pose.position.z = self.waypoints.waypoints[light_wp_orig].pose.pose.position.z
-        # self.upcoming_light_pub.publish(traffic_light)
-
-    def get_light_waypoint(self, light_index):
-        return self.light_waypoints[light_index]
+        self.upcoming_light_pub.publish(traffic_light)
 
 
     def get_closest_waypoint(self, pose):
@@ -347,47 +348,43 @@ class TLDetector(object):
 
         """
 
-        closest_lightstop = None
+        closest_lightstop_pose = None
+        closest_lightstop_wp_index = -1
         closest_light_state = TrafficLight.UNKNOWN
 
-        # if not self.light_is_indexed:
-        #     self.light_is_indexed()
+        if self.pose is None or not self.is_lightstops_indexed:
+            return closest_lightstop_pose, closest_lightstop_wp_index, closest_light_state
 
-        if self.pose is None:
-            return closest_lightstop, closest_light_state
-
-        car_xyz = self.pose.pose.position
+        car_pose = self.pose.pose
 
         min_dist = 100 # Find traffic lights within this distance
-        closest_light_xyz = None
+        closest_light_pose = None
         for light in self.lights:
-            light_xyz = light.pose.pose.position
-            dist = np.sqrt((light_xyz.x - car_xyz.x)**2 + \
-                           (light_xyz.y - car_xyz.y)**2 + \
-                           (light_xyz.z - car_xyz.z)**2)
+            light_pose = light.pose.pose
+            dist = distance_xy(light_pose, car_pose)
+
             if dist < min_dist:
                 min_dist = dist
-                closest_light_xyz = light_xyz
+                closest_light_pose = light_pose
                 closest_light_state = light.state
         
-        if closest_light_xyz: # If a light was found let's find the closest stop
+        if closest_light_pose: # If a light was found let's find the closest stop
             rospy.logwarn('Traffic light found %d m away', min_dist)
             min_dist = 50 # Find closest lightstop within this distance
-            for lightstop in self.lightstops:
-                lightstop_xyz = lightstop.position
-                dist = np.sqrt((lightstop_xyz.x - closest_light_xyz.x)**2 + \
-                               (lightstop_xyz.y - closest_light_xyz.y)**2)
+            for i, lightstop_pose in enumerate(self.lightstops_pose):
+                dist = distance_xy(lightstop_pose, closest_light_pose)
                 if dist < min_dist:
                     min_dist = dist
-                    closest_lightstop = lightstop
+                    closest_lightstop_pose = lightstop_pose
+                    closest_lightstop_wp_index = self.lightstops_wp_index[i]
 
-            if closest_lightstop is None:
+            if closest_lightstop_pose is None:
                 rospy.logwarn('No stopping line was found for traffic light')
 
         else:
             rospy.logwarn('No traffic light found')
 
-        return closest_lightstop, closest_light_state
+        return closest_lightstop_pose, closest_lightstop_wp_index, closest_light_state
 
 
 if __name__ == '__main__':
