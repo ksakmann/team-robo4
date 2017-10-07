@@ -24,6 +24,12 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
 
+def qe(a, b, c):
+    tmp = b*b - 4*a*c
+    if tmp < 0:
+        rospy.logerr('Attempting square root of -ve number')
+    
+    return (math.sqrt(b*b - 4*a*c) - b) / (2*a)
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -152,7 +158,7 @@ class WaypointUpdater(object):
         rospy.loginfo('initial v: %s', v0)
 
         # solve the quadratic equation.
-        qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
+        # qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
 
         if self.final_waypoints is not None:
             if self.tw_id != -1:

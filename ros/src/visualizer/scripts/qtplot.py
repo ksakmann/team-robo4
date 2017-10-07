@@ -1,8 +1,10 @@
 import sys
 import time
-from pyqtgraph.Qt import QtCore, QtGui
 import numpy as np
+
+from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
+
 
 class App(QtGui.QMainWindow):
     def __init__(self, parent=None):
@@ -28,18 +30,14 @@ class App(QtGui.QMainWindow):
         self.hVehicle      = self.fig.plot(pen=None, symbolBrush='b' , symbolPen='b', symbol='o' , symbolSize=20)
         self.hTrafficLight = self.fig.plot(pen=None, symbolBrush='r' , symbolPen='r', symbol='o' , symbolSize=30)
 
-
     def plotMap(self, x, y):
         self.hMap.setData(x, y)
-
 
     def plotVehicle(self, x, y):
         self.hVehicle.setData([x], [y])
 
-
     def plotTrafficLight(self, x, y, color):
         self.hTrafficLight.setData([x], [y], symbolBrush=color, symbolPen=color)
-
     
     def plotTrafficLightClear(self):
         self.hTrafficLight.clear()
@@ -51,5 +49,4 @@ if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     thisapp = App()
     thisapp.show()
-    # thisapp._update()
     sys.exit(app.exec_())

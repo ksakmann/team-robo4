@@ -4,17 +4,13 @@ import sys
 import numpy as np
 
 import rospy
-from styx_msgs.msg import Lane, TrafficLight
 from geometry_msgs.msg import PoseStamped, Pose
 from qtplot import App
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 
+from styx_msgs.msg import Lane, TrafficLight
 
-# import time
-# import numpy as np
-
-# graph_obj = None
 
 class Visualizer:
     def __init__(self, argv):
@@ -31,7 +27,6 @@ class Visualizer:
 
         self.rate = rospy.Rate(1)
 
-
     def run_loop(self):
 
         app = QtGui.QApplication(self.argv)
@@ -43,18 +38,15 @@ class Visualizer:
             QtGui.QApplication.instance().processEvents()
             self.rate.sleep()
 
-
     def waypoints_cb(self, msg):
         x = np.asarray([this.pose.pose.position.x for this in msg.waypoints])
         y = np.asarray([this.pose.pose.position.y for this in msg.waypoints])
         self.thisapp.plotMap(x, y)
 
-
     def pose_cb(self, msg):
         x = msg.pose.position.x
         y = msg.pose.position.y
         self.thisapp.plotVehicle(x, y)
-
     
     def traffic_cb(self, msg):
 
@@ -76,12 +68,12 @@ class Visualizer:
                 rospy.error('Unexpected traffic light status')
 
             if not b_clear:
-                rospy.logwarn('Plot traffic light visual')
+                rospy.loginfo('Plot traffic light visual')
                 x = msg.pose.pose.position.x
                 y = msg.pose.pose.position.y
                 self.thisapp.plotTrafficLight(x, y, color)
             else:
-                rospy.logwarn('Clearing traffic light visual')
+                rospy.loginfo('Clearing traffic light visual')
                 self.thisapp.plotTrafficLightClear()
 
         else: 
