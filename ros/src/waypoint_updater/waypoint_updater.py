@@ -68,7 +68,6 @@ class WaypointUpdater(object):
         self.orientation = msg.pose.orientation
         quaternion = [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]
         self.roll, self.pitch, self.yaw = tf.transformations.euler_from_quaternion(quaternion)
-<<<<<<< HEAD
         rospy.logdebug('pose : %s, %s, %s', self.x, self.y, self.z)
 
         # if self.tw_id == -1:
@@ -77,9 +76,6 @@ class WaypointUpdater(object):
         if self.final_waypoints is not None:
             self.final_waypoints_pub.publish(self.final_waypoints)
 
-=======
-        # rospy.logwarn('pose : %s, %s, %s', self.x, self.y, self.z)
->>>>>>> simple-traffic-light-detector
 
     def get_next_waypoints(self):
 
