@@ -27,9 +27,9 @@ LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this 
 def qe(a, b, c):
     tmp = b*b - 4*a*c
     if tmp < 0:
-        rospy.logerr('Attempting square root of -ve number')
-    
-    return (math.sqrt(b*b - 4*a*c) - b) / (2*a)
+        rospy.logerr('Attempting square root of -ve number %s', b)
+
+    return (math.sqrt(min(0,tmp)) - b) / (2*a)
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -60,7 +60,7 @@ class WaypointUpdater(object):
         self.waypoints = None
         self.no_waypoints = None
         self.closest = None	# closest waypoint index to current position.
-	self.target_velocity = 10.0	# target velocity is 10m/sec
+	self.target_velocity = 10.0 * 0.4407	# target velocity is 10m/sec
 
         rospy.spin()
 
@@ -151,11 +151,11 @@ class WaypointUpdater(object):
         self.tw_id = msg.data
 
         if self.waypoints is not None:
-            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) # m/s
+            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.4407 # m/s
         else:
             v0 = self.target_velocity
 
-        rospy.logwarn('traffic_waypoint: %s', self.tw_id)
+        rospy.loginfo('traffic_waypoint: %s', self.tw_id)
         rospy.loginfo('closest index: %s', self.closest)
         rospy.loginfo('initial v: %s', v0)
 
