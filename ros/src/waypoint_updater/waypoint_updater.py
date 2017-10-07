@@ -24,6 +24,12 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
 
+def qe(a, b, c):
+    tmp = b*b - 4*a*c
+    if tmp < 0:
+        rospy.logerr('Attempting square root of -ve number')
+    
+    return (math.sqrt(b*b - 4*a*c) - b) / (2*a)
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -83,7 +89,7 @@ class WaypointUpdater(object):
         ind = self.closest
 
         if self.yaw is None or self.waypoints is None or ind is None:
-            rospy.loginfo('yaw, closest : %s, %s', self.yaw, self.closest)
+            # rospy.logwarn('yaw,closest : %s, %s', self.yaw, self.closest)
             return
 
         wp = self.waypoints[ind]
@@ -96,7 +102,7 @@ class WaypointUpdater(object):
         for i in range(LOOKAHEAD_WPS):
             lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
 
-        rospy.loginfo('wp.pose.pose.position.x, wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
+        # rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
         return lane
 
 
@@ -116,7 +122,12 @@ class WaypointUpdater(object):
 
 
     def get_closest_waypoint_index(self):
+<<<<<<< HEAD
         rospy.loginfo('x,y : %s, %s ', self.x, self.y)
+=======
+
+        # rospy.logwarn('x,y : %s, %s ', self.x, self.y)
+>>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
 
         if self.x is None or self.y is None or self.waypoints is None:
             return
@@ -130,10 +141,15 @@ class WaypointUpdater(object):
             if wp_distance < distance:
                 distance = wp_distance
                 self.closest = ind
+<<<<<<< HEAD
 
         rospy.loginfo('closest : %s, %s ',
                       self.waypoints[self.closest].pose.pose.position.x,
                       self.waypoints[self.closest].pose.pose.position.y)
+=======
+        # rospy.logwarn('closest : %s, %s ', self.waypoints[self.closest].pose.pose.position.x,
+                    #   self.waypoints[self.closest].pose.pose.position.y)
+>>>>>>> e2540f257f4e2c12e489005b7efabd6d54af9d5a
 
     def waypoints_cb(self, msg):
         self.waypoints = msg.waypoints
@@ -154,7 +170,7 @@ class WaypointUpdater(object):
         rospy.loginfo('initial v: %s', v0)
 
         # solve the quadratic equation.
-        qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
+        # qe = lambda a,b,c: (math.sqrt(b*b - 4*a*c) - b) /2/a
 
         if self.final_waypoints is not None:
             if self.tw_id != -1:
