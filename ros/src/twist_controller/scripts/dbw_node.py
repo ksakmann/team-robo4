@@ -82,7 +82,7 @@ class DBWNode(object):
             # TODO Can we assume the sampling time is constant? Or do we need to calculated the time elapsed since last exec?
             dt = 1./self.rate
             throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, dt)
-            steer = self.yaw_rate_controller.control(self.speed_demand, self.yaw_rate_demand)
+            steer = self.yaw_rate_controller.control(self.speed, self.yaw_rate_demand)
 
             # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
             if self.dbw_enabled:
@@ -104,11 +104,12 @@ class DBWNode(object):
         tcmd.pedal_cmd = throttle
         self.throttle_pub.publish(tcmd)
 
-        if throttle > 0:
+        if self.speed > 0.1:
             scmd = SteeringCmd()
             scmd.enable = True
             scmd.steering_wheel_angle_cmd = steer
             self.steer_pub.publish(scmd)
+            rospy.loginfo('steer cmd: %s', steer)
 
         if brake > 0:
             bcmd = BrakeCmd()
