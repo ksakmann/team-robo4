@@ -26,9 +26,9 @@ def xml_to_csv(path):
 
 
 def main():
-    image_path = os.path.join(os.getcwd(), 'xmls_l_000_200')
+    image_path = os.path.join(os.getcwd(), 'data/simulator_images_xml')
     xml_df = xml_to_csv(image_path)
-    xml_df.to_csv('udacity_labels.csv', index=None)
+    xml_df.to_csv('data/simulator_images_labels.csv', index=None)
     print('Successfully converted xml to csv.')
 
 
