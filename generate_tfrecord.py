@@ -2,12 +2,12 @@
 Usage:
 
   # Create train data:
-  python generate_tfrecord_udacity.py --csv_input=data/simulator_train_labels.csv \
+  python generate_tfrecord.py --csv_input=data/simulator_train_labels.csv \
                                       --output_path=data/simulator_train.record \
                                       --image_path=data/simulator_images
 
   # Create test data:
-  python generate_tfrecord_udacity.py --csv_input=data/simulator/test_labels.csv \
+  python generate_tfrecord.py --csv_input=data/simulator/test_labels.csv \
                                       --output_path=data/simulator_test.record \
                                       --image_path=data/simulator_images
 """
