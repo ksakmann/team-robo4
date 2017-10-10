@@ -45,7 +45,6 @@ class TLDetector(object):
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
         self.bridge = CvBridge()
-        self.light_classifier = TLClassifier()
         self.listener = tf.TransformListener()
 
         self.state = TrafficLight.UNKNOWN
@@ -55,6 +54,8 @@ class TLDetector(object):
         self.save_images = False
         self.saved_image_counter = 1
         self.saved_image_limit = 100
+
+        self.light_classifier = TLClassifier()
 
         rospy.spin()
 
@@ -281,6 +282,7 @@ class TLDetector(object):
         # output image will be of size 800x400
 
         # save 100 images for training purposes
+        print('Save image? %r', self.save_images)
         if self.save_images == True and self.saved_image_counter <= self.saved_image_limit:
             rospy.loginfo('saving images')
             if not (os.path.exists("./tl_images")):
@@ -292,8 +294,13 @@ class TLDetector(object):
         # rospy.loginfo('project to image plane x, y = %f, %f', x, y)
 
         #Get classification
-        # return self.light_classifier.get_classification(cv_image)
-        return self.get_light_state_from_simulator(light)
+        classified_light_state = self.light_classifier.get_classification(cv_image)
+        simulator_light_state = self.get_light_state_from_simulator(light)
+
+        if classified_light_state != simulator_light_state:
+            rospy.logwarn('Classified light state: %d, ground truth light state: %d', classified_light_state, simulator_light_state)
+
+        return simulator_light_state
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its

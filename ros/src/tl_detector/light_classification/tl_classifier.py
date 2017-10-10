@@ -5,7 +5,6 @@ import rospy
 from styx_msgs.msg import TrafficLight
 
 
-# PATH_TO_CKPT = '../../../classifier/models/ssd_mobilenet_v1_coco_udacity/exported_model_dir/frozen_inference_graph.pb'
 CLASSIFICATION_THRESHOLD = 0.5 # Value above which classiciation is a hit
 
 
@@ -32,7 +31,11 @@ class TLClassifier(object):
             # Create a reusable sesion attribute
             self.sess = tf.Session(graph=self.detection_graph, config=config)
 
-        image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
+        self.image_tensor      = self.detection_graph.get_tensor_by_name('image_tensor:0')
+        self.detection_boxes   = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+        self.detection_scores  = self.detection_graph.get_tensor_by_name('detection_scores:0')
+        self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
+        self.num_detections    = self.detection_graph.get_tensor_by_name('num_detections:0')
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -45,21 +48,24 @@ class TLClassifier(object):
 
         """
 
-        #TODO implement light color prediction
-        # image_np = load_image_into_numpy_array(image)
-        image_np_expanded = np.expand_dims(image_np, axis=0)
+        image_np_expanded = np.expand_dims(image, axis=0)
 
         with self.detection_graph.as_default():
-            with tf.Session(graph=detection_graph) as sess:
-                out = self.sess.run([detection_boxes, detection_scores,
-                                     detection_classes, num_detections],
+            with tf.Session(graph=self.detection_graph) as sess:
+                out = self.sess.run([self.detection_boxes, self.detection_scores,
+                                     self.detection_classes, self.num_detections],
                                     feed_dict={self.image_tensor: image_np_expanded})
             
         boxes, scores, classes, num = out
 
+        # create np arrays
+        boxes = np.squeeze(boxes)
+        scores = np.squeeze(scores)
+        classes = np.squeeze(classes).astype(np.int32)
+
         self.current_light = TrafficLight.UNKNOWN
 
-        if scores[0] > CLASSIFICATION_THRESHOLD: # If highest score is above 50% it's a hit
+        if scores is None or scores[0] > CLASSIFICATION_THRESHOLD: # If highest score is above 50% it's a hit
             if classes[0] == 1:
                 self.current_light = TrafficLight.RED
             elif classes[0] == 2:
