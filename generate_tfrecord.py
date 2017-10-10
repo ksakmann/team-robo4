@@ -1,11 +1,15 @@
 """
 Usage:
-  # From tensorflow/models/
+
   # Create train data:
-  python generate_tfrecord_udacity.py --csv_input=data/train_labels.csv  --output_path=data/train.record
+  python generate_tfrecord_udacity.py --csv_input=data/simulator_train_labels.csv \
+                                      --output_path=data/simulator_train.record \
+                                      --image_path=data/simulator_images
 
   # Create test data:
-  python generate_tfrecord_udacity.py --csv_input=data/test_labels.csv  --output_path=data/test.record
+  python generate_tfrecord_udacity.py --csv_input=data/simulator/test_labels.csv \
+                                      --output_path=data/simulator_test.record \
+                                      --image_path=data/simulator_images
 """
 from __future__ import division
 from __future__ import print_function
@@ -22,7 +26,7 @@ from collections import namedtuple, OrderedDict
 
 flags = tf.app.flags
 flags.DEFINE_string('csv_input', '', 'Path to the CSV input')
-flags.DEFINE_string('image_path', '', 'Path to the images')
+flags.DEFINE_string('image_path', '', 'Path to the image dir')
 flags.DEFINE_string('output_path', '', 'Path to output TFRecord')
 FLAGS = flags.FLAGS
 
