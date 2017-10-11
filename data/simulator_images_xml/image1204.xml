@@ -1,7 +1,7 @@
 <annotation>
-	<folder>sim3</folder>
+	<folder>simulator_images</folder>
 	<filename>image1204.jpg</filename>
-	<path>G:\sim3\image1204.jpg</path>
+	<path>/home/ks/robo4-carnd-capstone/data/simulator_images/image1204.jpg</path>
 	<source>
 		<database>Unknown</database>
 	</source>
@@ -17,7 +17,7 @@
 		<truncated>0</truncated>
 		<difficult>0</difficult>
 		<bndbox>
-			<xmin>134</xmin>
+			<xmin>139</xmin>
 			<ymin>459</ymin>
 			<xmax>168</xmax>
 			<ymax>521</ymax>
@@ -31,8 +31,8 @@
 		<bndbox>
 			<xmin>264</xmin>
 			<ymin>462</ymin>
-			<xmax>295</xmax>
-			<ymax>528</ymax>
+			<xmax>291</xmax>
+			<ymax>526</ymax>
 		</bndbox>
 	</object>
 	<object>
@@ -41,10 +41,10 @@
 		<truncated>0</truncated>
 		<difficult>0</difficult>
 		<bndbox>
-			<xmin>384</xmin>
-			<ymin>471</ymin>
-			<xmax>410</xmax>
-			<ymax>533</ymax>
+			<xmin>388</xmin>
+			<ymin>470</ymin>
+			<xmax>414</xmax>
+			<ymax>532</ymax>
 		</bndbox>
 	</object>
 </annotation>

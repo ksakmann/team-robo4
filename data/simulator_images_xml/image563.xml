@@ -1,7 +1,7 @@
 <annotation>
 	<folder>simulator_images</folder>
-	<filename>image220.jpg</filename>
-	<path>/home/ks/robo4-carnd-capstone/data/simulator_images/image220.jpg</path>
+	<filename>image563.jpg</filename>
+	<path>/home/ks/robo4-carnd-capstone/data/simulator_images/image563.jpg</path>
 	<source>
 		<database>Unknown</database>
 	</source>
@@ -12,27 +12,27 @@
 	</size>
 	<segmented>0</segmented>
 	<object>
-		<name>Yellow</name>
+		<name>Red</name>
 		<pose>Unspecified</pose>
-		<truncated>0</truncated>
+		<truncated>1</truncated>
 		<difficult>0</difficult>
 		<bndbox>
-			<xmin>2</xmin>
-			<ymin>10</ymin>
-			<xmax>51</xmax>
-			<ymax>243</ymax>
+			<xmin>1</xmin>
+			<ymin>48</ymin>
+			<xmax>56</xmax>
+			<ymax>255</ymax>
 		</bndbox>
 	</object>
 	<object>
-		<name>Yellow</name>
+		<name>Red</name>
 		<pose>Unspecified</pose>
 		<truncated>0</truncated>
 		<difficult>0</difficult>
 		<bndbox>
-			<xmin>383</xmin>
-			<ymin>26</ymin>
-			<xmax>485</xmax>
-			<ymax>244</ymax>
+			<xmin>375</xmin>
+			<ymin>63</ymin>
+			<xmax>469</xmax>
+			<ymax>268</ymax>
 		</bndbox>
 	</object>
 </annotation>
