@@ -4,12 +4,12 @@ Usage:
   # Create train data:
   python generate_tfrecord.py --csv_input=data/simulator_train_labels.csv \
                                       --output_path=data/simulator_train.record \
-                                      --image_path=data/simulator_images
+                                      --image_path=../data/simulator_images
 
   # Create test data:
-  python generate_tfrecord.py --csv_input=data/simulator/test_labels.csv \
+  python generate_tfrecord.py --csv_input=data/simulator_test_labels.csv \
                                       --output_path=data/simulator_test.record \
-                                      --image_path=data/simulator_images
+                                      --image_path=../data/simulator_images
 """
 from __future__ import division
 from __future__ import print_function
