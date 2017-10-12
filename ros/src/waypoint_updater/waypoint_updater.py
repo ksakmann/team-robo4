@@ -48,12 +48,12 @@ class WaypointUpdater(object):
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
         rospy.Subscriber('/traffic_waypoint', Int32       , self.traffic_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_vel_cb)
-        # rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
+        rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         self.tw_id = 0
-        self.ow_id = 0
+        self.ow_id = -1
         self.deccel = rospy.get_param('~nominal_deccel')
         self.stopping_distance_buffer = rospy.get_param('~stopping_distance_buffer')
         self.lookahead_wps = rospy.get_param('~lookahead_wps')
@@ -61,6 +61,7 @@ class WaypointUpdater(object):
         self.current_velocity = 0
         self.target_velocity = rospy.get_param('~target_velocity')
 
+        self.next_indices = 0
         self.x = None
         self.y = None
         self.z = None  # z seems to be always zero for all base waypoints
@@ -174,14 +175,25 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         self.final_waypoints = self.get_next_waypoints()
-        next_indices = self.get_next_waypoint_indices()
+        self.next_indices = self.get_next_waypoint_indices()
         self.tw_id = msg.data
+        self.set_velocity()
 
+
+    def set_velocity(self):
         is_red_light_present = self.tw_id != -1
+        is_obstacle_present = self.ow_id != -1
+        if is_red_light_present:
+            if (self.ow_id < self.tw_id) and (self.ow_id > self.next_indices):
+                self.tw_id = self.ow_id
+        elif is_obstacle_present:
+            if (self.ow_id < self.next_indices+50) and (self.ow_id > self.next_indices):
+                self.tw_id = self.ow_id
+                is_red_light_present = True
 
         if self.final_waypoints is not None:
             if is_red_light_present:
-                for i, wp_index in enumerate(next_indices):
+                for i, wp_index in enumerate(self.next_indices):
                     # Calculate distance to red light and factor in a safety margin buffer
                     d = distance(self.waypoints, wp_index, self.tw_id) - self.stopping_distance_buffer
                     if d > 0:
@@ -194,9 +206,12 @@ class WaypointUpdater(object):
                     target_velocity = min([self.target_velocity, target_velocity_deccel])
                     self.set_waypoint_velocity(self.final_waypoints.waypoints, i, target_velocity)
             else:
-                for i, wp_index in enumerate(next_indices):
+                for i, wp_index in enumerate(self.next_indices):
                     # Finally, take the minimum from the accel profile and the cruising speed profile
                     self.set_waypoint_velocity(self.final_waypoints.waypoints, i, self.target_velocity)
+
+    def obstacle_cb(self, msg):
+        self.ow_id = msg.data
 
     def current_vel_cb(self, msg):
         self.current_velocity = msg.twist.linear.x
