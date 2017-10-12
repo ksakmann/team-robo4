@@ -22,24 +22,27 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
+
 LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
+
 
 def qe(a, b, c):
     tmp = b*b - 4*a*c
     if tmp < 0:
-        rospy.logerr('Attempting square root of -ve number %s', b)
+        rospy.logerr('Attempting square root of -ve number %s', tmp)
 
     return (math.sqrt(min(0,tmp)) - b) / (2*a)
+
 
 class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
 
-        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        rospy.Subscriber('/current_pose'  , PoseStamped, self.pose_cb)
+        rospy.Subscriber('/base_waypoints', Lane       , self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/traffic_waypoint' , Int32, self.traffic_cb)
         rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
@@ -60,7 +63,7 @@ class WaypointUpdater(object):
         self.waypoints = None
         self.no_waypoints = None
         self.closest = None	# closest waypoint index to current position.
-	self.target_velocity = 10.0 * 0.4407	# target velocity is 10m/sec
+        self.target_velocity = 10.0 * 0.4407	# target velocity is 10m/sec
 
         rospy.spin()
 
@@ -105,8 +108,6 @@ class WaypointUpdater(object):
         # rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
         return lane
 
-
-
     def get_local_coordinates(self,wp):
         # Two trafos  like in MPC project
         # 1. shift
@@ -118,8 +119,7 @@ class WaypointUpdater(object):
         xpp = math.cos(self.yaw) * xp + math.sin(self.yaw) * yp
         ypp = -math.sin(self.yaw) * xp + math.cos(self.yaw) * yp
 
-        return xpp,ypp
-
+        return xpp, ypp
 
     def get_closest_waypoint_index(self):
         rospy.loginfo('x,y : %s, %s ', self.x, self.y)
@@ -262,8 +262,9 @@ class WaypointUpdater(object):
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
 
-        # TODO: Returns distance between waypoints indexed wp1 and wp2
+        
     def distance(self, waypoints, wp1, wp2):
+        # TODO: Returns distance between waypoints indexed wp1 and wp2
         dist = 0
         dl = lambda a, b: math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2)
         for i in range(wp1, wp2 + 1):
@@ -271,9 +272,8 @@ class WaypointUpdater(object):
             wp1 = i
         return dist
 
-    # utility.
-    # Determine whether or not we can stop under the limit deceleration.
     def chk_stp(self, v_init, dist):
+        # Determine whether or not we can stop under the limit deceleration.
         stp_t = v_init / self.accel_limit
         d_stp = v_init * stp_t - self.accel_limit * stp_t * stp_t / 2
 
