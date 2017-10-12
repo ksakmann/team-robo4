@@ -20,9 +20,14 @@ def plot_pid_performance(file):
     plt.ylabel('Yaw Rate (rad/s)')
     plt.legend(['Actual','Demand'])
 
+    # ax4 = plt.subplot(2, 2, 4, sharex=ax1)
+    # ax4.plot(df.index, df.vehicle_steering_cmd__steering_wheel_angle_cmd, '-o')
+    # plt.ylabel('Steering Angle (rad)')
+
     ax4 = plt.subplot(2, 2, 4, sharex=ax1)
-    ax4.plot(df.index, df.vehicle_steering_cmd__steering_wheel_angle_cmd, '-o')
-    plt.ylabel('Steering Angle (rad)')
+    ax4.plot(df.index, df.speed_control_diag__error, '-o')
+    plt.ylabel('Error')
+
 
     
 

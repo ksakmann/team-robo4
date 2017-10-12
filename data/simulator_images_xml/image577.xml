@@ -1,0 +1,26 @@
+<annotation>
+	<folder>simulator_images</folder>
+	<filename>image577.jpg</filename>
+	<path>/home/ks/robo4-carnd-capstone/data/simulator_images/image577.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>800</width>
+		<height>600</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>Red</name>
+		<pose>Unspecified</pose>
+		<truncated>1</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>380</xmin>
+			<ymin>1</ymin>
+			<xmax>487</xmax>
+			<ymax>197</ymax>
+		</bndbox>
+	</object>
+</annotation>
