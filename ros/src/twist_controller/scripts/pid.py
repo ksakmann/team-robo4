@@ -1,4 +1,3 @@
-
 MIN_NUM = float('-inf')
 MAX_NUM = float('inf')
 
@@ -11,28 +10,33 @@ class PID(object):
         self.min = min
         self.max = max
 
-        self.int_val = self.last_int_val = self.last_error = 0.
+        # Initialization
+        self.reset()
 
     def reset(self):
-        self.int_val = 0.0
-        self.last_int_val = 0.0
+        self.error      = 0.0
+        self.i_error    = 0.0
+        self.d_error    = 0.0
+        self.last_error = 0.0
 
     def step(self, error, sample_time):
-        self.last_int_val = self.int_val
+        # self.last_i_error = self.i_error
+        self.error = error
 
-        integral = self.int_val + error * sample_time;
-        derivative = (error - self.last_error) / sample_time;
+        i_error = self.i_error + self.error * sample_time;
+        self.d_error = (self.error - self.last_error) / sample_time;
 
-        val = self.kp * error + self.ki * self.int_val + self.kd * derivative;
+        actuator = self.kp * self.error + self.ki * self.i_error + self.kd * self.d_error;
 
         # TODO Implement anti-windup
-        if val > self.max:
-            val = self.max
-        elif val < self.min:
-            val = self.min
+        if actuator > self.max:
+            self.actuator = self.max
+        elif actuator < self.min:
+            self.actuator = self.min
         else:
-            self.int_val = integral
+            self.actuator = actuator
+            self.i_error = i_error
 
-        self.last_error = error
+        self.last_error = self.error
 
-        return val
+        return self.actuator
