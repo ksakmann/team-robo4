@@ -29,7 +29,7 @@ def qe(a, b, c):
     if tmp < 0:
         rospy.logerr('Attempting square root of -ve number %s', b)
 
-    return (math.sqrt(min(0,tmp)) - b) / (2*a)
+    return (math.sqrt(max(0,tmp)) - b) / (2*a)
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -42,6 +42,8 @@ class WaypointUpdater(object):
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
         rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
 
+        rospy.Subscriber('/current_velocity', TwistStamped, self.current_vel_cb)
+
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
@@ -49,6 +51,7 @@ class WaypointUpdater(object):
         self.ow_id = 0
         self.accel_limit = 4.0 # m/sec^2
         self.final_waypoints = Lane()
+        self.current_velocity = 0
 
         self.x = None
         self.y = None
@@ -150,10 +153,11 @@ class WaypointUpdater(object):
         self.final_waypoints = self.get_next_waypoints()
         self.tw_id = msg.data
 
-        if self.waypoints is not None:
-            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.4407 # m/s
-        else:
-            v0 = self.target_velocity
+        #if self.waypoints is not None:
+        #    v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.4407 # m/s
+        #else:
+        #    v0 = self.target_velocity
+        v0 = self.current_velocity
 
         rospy.loginfo('traffic_waypoint: %s', self.tw_id)
         rospy.loginfo('closest index: %s', self.closest)
@@ -255,6 +259,9 @@ class WaypointUpdater(object):
                     # accelerate with DBW_node.
                     set_v = self.target_velocity
                     self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+
+    def current_vel_cb(self, msg):
+        self.current_velocity = msg.twist.linear.x
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
