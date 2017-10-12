@@ -11,8 +11,9 @@ def plot_pid_performance(file):
     plt.legend(['Actual','Demand'])
     
     ax2 = plt.subplot(2, 2, 3, sharex=ax1)
-    ax2.plot(df.index, df.vehicle_throttle_cmd__pedal_cmd, '-o')
-    plt.ylabel('Throttle (%)')
+    ax2.plot(df.index, df.vehicle_throttle_cmd__pedal_cmd, '-o', df.index, df.vehicle_brake_cmd__pedal_cmd, '-o')
+    plt.ylabel('-')
+    plt.legend(['Throttle','Brake'])
 
     ax3 = plt.subplot(2, 2, 2, sharex=ax1)
     ax3.plot(df.index, df.current_velocity__twist_angular_z, '-o', df.index, df.twist_cmd__twist_angular_z, '-o')

@@ -8,6 +8,7 @@ from std_msgs.msg import Bool
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
 from geometry_msgs.msg import TwistStamped
 
+from twist_controller.msg import ControlDiag
 from speed_controller import SpeedController
 from yaw_rate_controller import YawRateController
 
@@ -57,19 +58,23 @@ class DBWNode(object):
         self.yaw_rate_demand = 0
         self.rate = 50 # DBW node rate (Hz)
 
-        self.steer_pub    = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=1)
-        self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
-        self.brake_pub    = rospy.Publisher('/vehicle/brake_cmd'   , BrakeCmd   , queue_size=1)
+	self.dbw_enabled = False
 
-        # self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
-        self.speed_sub     = rospy.Subscriber('/current_velocity', TwistStamped, self.speed_cb)
-        self.twist_cmd_sub = rospy.Subscriber('/twist_cmd'       , TwistStamped, self.twist_cmd_cb)
+        # Publications
+        self.steer_pub                 = rospy.Publisher('/vehicle/steering_cmd' , SteeringCmd, queue_size=1)
+        self.throttle_pub              = rospy.Publisher('/vehicle/throttle_cmd' , ThrottleCmd, queue_size=1)
+        self.brake_pub                 = rospy.Publisher('/vehicle/brake_cmd'    , BrakeCmd   , queue_size=1)
+        self.speed_control_diag_pub    = rospy.Publisher('/speed_control_diag'   , ControlDiag, queue_size=1)
 
-        self.speed_controller = SpeedController()
+        # Subscriptions
+        self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
+        self.speed_sub       = rospy.Subscriber('/current_velocity'   , TwistStamped, self.speed_cb)
+        self.twist_cmd_sub   = rospy.Subscriber('/twist_cmd'          , TwistStamped, self.twist_cmd_cb)
+
+        self.speed_controller    = SpeedController()
         self.yaw_rate_controller = YawRateController(max_steer_angle, steer_ratio, wheel_base)
 
         self.loop()
-
 
     def loop(self):
 
@@ -81,16 +86,28 @@ class DBWNode(object):
             # TODO Can we assume the sampling time is constant? Or do we need to calculated the time elapsed since last exec?
             dt = 1./self.rate
             throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, dt)
-            steer = self.yaw_rate_controller.control(self.speed_demand, self.yaw_rate_demand)
+            steer = self.yaw_rate_controller.control(self.speed, self.yaw_rate_demand)
 
             # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
-            # if self.dbw_enabled:
-            rospy.loginfo('Speed Demand: %f, Speed Actual: %f', self.speed_demand, self.speed)
-            rospy.loginfo('Yaw Rate Demand: %f, Yaw Rate Actual: %f', self.yaw_rate_demand, self.yaw_rate)
-            self.publish(throttle, brake, steer)
+            if self.dbw_enabled:
+                rospy.loginfo('Speed Demand: %f, Speed Actual: %f', self.speed_demand, self.speed)
+                rospy.loginfo('Yaw Rate Demand: %f, Yaw Rate Actual: %f', self.yaw_rate_demand, self.yaw_rate)
+                self.publish(throttle, brake, steer)
+            # Now I factor set to zero, so no need to reset.
+            #else:
+            #    self.speed_controller.reset()
+
+            # Diagnotics
+            speed_diag           = ControlDiag()
+            speed_diag.reference = self.speed_demand
+            speed_diag.actuator  = self.speed_controller.pid.actuator
+            speed_diag.error     = self.speed_controller.pid.error
+            speed_diag.i_error   = self.speed_controller.pid.i_error
+            speed_diag.d_error   = self.speed_controller.pid.d_error
+
+            self.speed_control_diag_pub.publish(speed_diag)
 
             rate.sleep()
-
 
     def publish(self, throttle, brake, steer):
         
@@ -100,47 +117,35 @@ class DBWNode(object):
         tcmd.pedal_cmd = throttle
         self.throttle_pub.publish(tcmd)
 
-        scmd = SteeringCmd()
-        scmd.enable = True
-        scmd.steering_wheel_angle_cmd = steer
-        self.steer_pub.publish(scmd)
+        if self.speed > 0.1:
+            scmd = SteeringCmd()
+            scmd.enable = True
+            scmd.steering_wheel_angle_cmd = steer
+            self.steer_pub.publish(scmd)
+            rospy.loginfo('steer cmd: %s', steer)
 
-        # bcmd = BrakeCmd()
-        # bcmd.enable = True
-        # bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
-        # bcmd.pedal_cmd = brake
-        # self.brake_pub.publish(bcmd)
+        if brake > 0:
+            bcmd = BrakeCmd()
+            bcmd.enable = True
+            bcmd.pedal_cmd_type = BrakeCmd.CMD_PERCENT
+            bcmd.pedal_cmd = brake * 100
+            bcmd.boo_cmd = True
+            self.brake_pub.publish(bcmd)
 
-    
     def speed_cb(self, msg):
         self.speed = msg.twist.linear.x
-        self.yaw_rate = msg.twist.angular.z
-        
+        self.yaw_rate = msg.twist.angular.z        
 
     def dbw_enabled_cb(self, msg):
-        self.dbw_enabled = msg
+        self.dbw_enabled = msg.data
     
-
     def twist_cmd_cb(self, msg):
         self.speed_demand = msg.twist.linear.x # m/s
         self.yaw_rate_demand = msg.twist.angular.z # rad/s
 
-
-
-    # def get_yaw_rate(self):
-        
-    #     dt = self.pose.header.stamp.to_sec() - self.pose0.header.stamp.to_sec()
-    #     euler_angles  = tf.transformations.euler_from_quaternion(self.pose.pose.orientation)
-    #     euler_angles2 = tf.transformations.euler_from_quaternion(self.pose0.pose.orientation)
-    #     yaw  = euler_angles[2]
-    #     yaw0 = euler_angles0[2]
-         
-    #     yaw_rate = (yaw - yaw0) / dt
-        
-    #     yaw_rate = 0
-
-    #     return yaw_rate
-
     
 if __name__ == '__main__':
-    DBWNode()
+    try:
+        DBWNode()
+    except rospy.ROSInterruptException:
+        rospy.logerr('Could not start dbw node.')
