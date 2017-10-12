@@ -23,11 +23,11 @@ python object_detection/eval.py \
 tensorboard --logdir=${PATH_TO_MODEL_DIRECTORY}
 
 
-python export_inference_graph \
+python export_inference_graph.py \
     --input_type image_tensor \
-    --pipeline_config_path /home/ks/robo4-carnd-capstone/classifier/models/ssd_mobilenet_v1_coco_simulator/ssd_mobilenet_v1_coco_simulator.config \
-    --trained_checkpoint_prefix /home/ks/robo4-carnd-capstone/classifier/models/ssd_mobilenet_v1_coco_simulator/train/model.ckpt-125605 \
-    --output_directory /home/ks/robo4-carnd-capstone/classifier/models/ssd_mobilenet_v1_coco_simulator/exported_model_dir
+    --pipeline_config_path ${PATH_TO_YOUR_PIPELINE_CONFIG} \
+    --trained_checkpoint_prefix ${PATH_TO_TRAIN_DIR}/model.ckpt-69495 \
+    --output_directory ${PATH_TO_MODEL_DIRECTORY}/exported_model_dir
 
 
 
