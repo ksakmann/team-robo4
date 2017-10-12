@@ -28,8 +28,9 @@ def qe(a, b, c):
     tmp = b*b - 4*a*c
     if tmp < 0:
         rospy.logerr('Attempting square root of -ve number %s', b)
+        rospy.loginfo('error a:%s, b:%s, c:%s', a, b, c)
 
-    return (math.sqrt(min(0,tmp)) - b) / (2*a)
+    return (math.sqrt(max(0,tmp)) - b) / (2*a)
 
 class WaypointUpdater(object):
     def __init__(self):
