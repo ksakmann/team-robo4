@@ -7,7 +7,7 @@ ONE_MPH = 0.44704
 class SpeedController(object):
     def __init__(self):
         kp = 1
-        ki = 0
+        ki = 0.5
         kd = 0
         # is_initialized = False # TODO Implement intialization (handle dt)
         self.pid = PID(kp, ki, kd, min=-1, max=1)

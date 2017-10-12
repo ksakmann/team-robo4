@@ -8,6 +8,7 @@ from std_msgs.msg import Bool
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
 from geometry_msgs.msg import TwistStamped
 
+from twist_controller.msg import ControlDiag
 from speed_controller import SpeedController
 from yaw_rate_controller import YawRateController
 
@@ -56,12 +57,16 @@ class DBWNode(object):
         self.yaw_rate = 0
         self.yaw_rate_demand = 0
         self.rate = 50 # DBW node rate (Hz)
+
 	self.dbw_enabled = False
 
-        self.steer_pub    = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=5)
-        self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=5)
-        self.brake_pub    = rospy.Publisher('/vehicle/brake_cmd'   , BrakeCmd   , queue_size=5)
+        # Publications
+        self.steer_pub                 = rospy.Publisher('/vehicle/steering_cmd' , SteeringCmd, queue_size=1)
+        self.throttle_pub              = rospy.Publisher('/vehicle/throttle_cmd' , ThrottleCmd, queue_size=1)
+        self.brake_pub                 = rospy.Publisher('/vehicle/brake_cmd'    , BrakeCmd   , queue_size=1)
+        self.speed_control_diag_pub    = rospy.Publisher('/speed_control_diag'   , ControlDiag, queue_size=1)
 
+        # Subscriptions
         self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
         self.speed_sub       = rospy.Subscriber('/current_velocity'   , TwistStamped, self.speed_cb)
         self.twist_cmd_sub   = rospy.Subscriber('/twist_cmd'          , TwistStamped, self.twist_cmd_cb)
@@ -91,6 +96,16 @@ class DBWNode(object):
             # Now I factor set to zero, so no need to reset.
             #else:
             #    self.speed_controller.reset()
+
+            # Diagnotics
+            speed_diag           = ControlDiag()
+            speed_diag.reference = self.speed_demand
+            speed_diag.actuation = self.speed_controller.pid.actuator
+            speed_diag.error     = self.speed_controller.pid.error
+            speed_diag.i_error   = self.speed_controller.pid.i_error
+            speed_diag.d_error   = self.speed_controller.pid.d_error
+
+            self.speed_control_diag_pub.publish(speed_diag)
 
             rate.sleep()
 
