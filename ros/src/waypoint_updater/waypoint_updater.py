@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
+import math, tf
+
 import rospy
 from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 
-import math, tf
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -130,9 +131,9 @@ class WaypointUpdater(object):
         distance = 1E10
         self.closest = -1000
         for ind, wp in enumerate(self.waypoints):
-            wp_distance = math.sqrt((self.x - wp.pose.pose.position.x) ** 2 \
-                                    + (self.y - wp.pose.pose.position.y) ** 2 \
-                                    + (self.z - wp.pose.pose.position.z) ** 2)
+            wp_distance = math.sqrt((self.x - wp.pose.pose.position.x) ** 2 + \
+                                    (self.y - wp.pose.pose.position.y) ** 2 + \
+                                    (self.z - wp.pose.pose.position.z) ** 2)
             if wp_distance < distance:
                 distance = wp_distance
                 self.closest = ind
@@ -168,7 +169,7 @@ class WaypointUpdater(object):
                 if self.chk_stp(v0, d):  #check whether or not can stop.
                     # set deceleration value.
                     if d != 0:
-                        decel = v0 * v0 /2/d
+                        decel = v0 * v0 / 2 / d
                     else:
                         decel = 0
                     rospy.loginfo('deceleration: %s', decel)
@@ -182,7 +183,7 @@ class WaypointUpdater(object):
 
                         # Solve the quadratic equation to find the time required to travel
                         # a certain distance.
-                        #if d > 80:	# Don't decelerate when tl is more than 80m away.
+                        # if d > 80:	# Don't decelerate when tl is more than 80m away.
                         #    set_v = self.target_velocity
                         if ((decel != 0) & (d_int <= d)):
                             delta_t = qe(-decel/2, v0, -d_int)
@@ -261,15 +262,16 @@ class WaypointUpdater(object):
 
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
-
         
     def distance(self, waypoints, wp1, wp2):
         # TODO: Returns distance between waypoints indexed wp1 and wp2
+        # Calculate distance along path
         dist = 0
         dl = lambda a, b: math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2)
         for i in range(wp1, wp2 + 1):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
+
         return dist
 
     def chk_stp(self, v_init, dist):

@@ -26,6 +26,11 @@ def distance_xy(a, b):
     return np.sqrt((a.position.x - b.position.x)**2 + (a.position.y - b.position.y)**2)
 
 
+def distance_xyz(a, b):
+    """Return the euclidean distance between two geometry_msgs.Pose objects"""
+    return np.sqrt((a.position.x - b.position.x)**2 + (a.position.y - b.position.y)**2 + + (a.position.z - b.position.z)**2)
+
+
 def pose_list(xy_list):
         """Returns a list of Pose objects given an array of x, y values
         
@@ -390,7 +395,7 @@ class TLDetector(object):
                 closest_light_state = light.state
         
         if closest_light_pose: # If a light was found let's find the closest stop
-            rospy.loginfo('Traffic light found %d m away', min_dist)
+            # rospy.loginfo('Traffic light found %d m away', min_dist)
             min_dist = 50 # Find closest lightstop within this distance
             for i, lightstop_pose in enumerate(self.lightstops_pose):
                 dist = distance_xy(lightstop_pose, closest_light_pose)
@@ -401,6 +406,9 @@ class TLDetector(object):
 
             if closest_lightstop_pose is None:
                 rospy.logwarn('No stopping line was found for visible traffic light')
+            else:
+                dist_veh_to_light_stop = distance_xy(closest_lightstop_pose, car_pose)
+                rospy.loginfo('Traffic light stop found %d m away', dist_veh_to_light_stop)
 
         else:
             rospy.loginfo('No traffic light found')
