@@ -357,7 +357,7 @@ class TLDetector(object):
         if classified_light_state != simulator_light_state:
             rospy.logwarn('Classified light state: %d, ground truth light state: %d', classified_light_state, simulator_light_state)
 
-        return simulator_light_state
+        return classified_light_state
 
 
     def process_traffic_lights(self):
