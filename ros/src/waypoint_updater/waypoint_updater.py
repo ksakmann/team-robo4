@@ -63,7 +63,7 @@ class WaypointUpdater(object):
         self.waypoints = None
         self.no_waypoints = None
         self.closest = None	# closest waypoint index to current position.
-	self.target_velocity = 10.0 * 0.4407	# target velocity is 10m/sec
+        self.target_velocity = 20.0 * 0.4407 # target velocity is 10m/sec
 
         rospy.spin()
 
