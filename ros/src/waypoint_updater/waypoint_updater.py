@@ -35,6 +35,18 @@ def qe(a, b, c):
     return (math.sqrt(max(0,tmp)) - b) / (2*a)
 
 
+def distance(waypoints, wp1, wp2):
+        # TODO: Returns distance between waypoints indexed wp1 and wp2
+        # Calculate distance along path
+        dist = 0
+        dl = lambda a, b: math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2)
+        for i in range(wp1, wp2 + 1):
+            dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
+            wp1 = i
+
+        return dist
+
+
 class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
@@ -53,6 +65,7 @@ class WaypointUpdater(object):
         # TODO: Add other member variables you need below
         self.tw_id = 0
         self.ow_id = 0
+        self.min_decel = 0.02 # threshold at which will start braking when a red light is visible
         self.accel_limit = 4.0 # m/sec^2
         self.final_waypoints = Lane()
         self.current_velocity = 0
@@ -112,11 +125,30 @@ class WaypointUpdater(object):
         # rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
         return lane
 
-    def get_local_coordinates(self,wp):
+    def get_next_waypoint_indices(self):
+
+        self.get_closest_waypoint_index()
+        ind = self.closest
+
+        if self.yaw is None or self.waypoints is None or ind is None:
+            # rospy.logwarn('yaw,closest : %s, %s', self.yaw, self.closest)
+            return
+
+        wp = self.waypoints[ind]
+        xpp,_ = self.get_local_coordinates(wp)
+
+        if xpp < 0:
+            ind = (ind + 1) % self.no_waypoints
+
+        indices = [i % self.no_waypoints for i in range(ind, ind + LOOKAHEAD_WPS)]  
+
+        return indices
+
+    def get_local_coordinates(self, wp):
         # Two trafos  like in MPC project
         # 1. shift
-        x,y = wp.pose.pose.position.x,wp.pose.pose.position.y
-        xp,yp = x-self.x,y-self.y
+        x, y = wp.pose.pose.position.x, wp.pose.pose.position.y
+        xp, yp = x - self.x, y - self.y
 
         # 2. rotation
         # coordinates transform inversely to basis vectors when the rotation is +yaw
@@ -152,6 +184,7 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
         self.final_waypoints = self.get_next_waypoints()
+        next_indices = self.get_next_waypoint_indices()
         self.tw_id = msg.data
 
         #if self.waypoints is not None:
@@ -166,37 +199,48 @@ class WaypointUpdater(object):
 
         if self.final_waypoints is not None:
             if self.tw_id != -1:
-                # compute distance from current position to red tl.
-                d = self.distance(self.waypoints, self.closest, self.tw_id)
-                rospy.loginfo('tl distance: %s', d)
+                # # compute distance from current position to red tl.
+                # d = self.distance(self.waypoints, self.closest, self.tw_id)
+                # rospy.loginfo('tl distance: %s', d)
 
-                if self.chk_stp(v0, d):  #check whether or not can stop.
-                    # set deceleration value.
-                    if d != 0:
-                        decel = v0 * v0 / 2 / d
+                # if self.chk_stp(v0, d):  #check whether or not can stop.
+                #     # set deceleration value.
+                #     if d != 0:
+                #         decel = v0 * v0 / 2 / d
+                #     else:
+                #         decel = 0
+                #     rospy.loginfo('deceleration: %s', decel)
+
+                #     for i in range(len(self.final_waypoints.waypoints)):
+                #         # distance from closest id to the point where set the vehicle speed this time.
+                #         if (self.tw_id - self.closest != 0):
+                #             d_int = d / (self.tw_id - self.closest) * i
+                #         else:
+                #             d_int = 0
+
+                #         # Solve the quadratic equation to find the time required to travel
+                #         # a certain distance.
+                #         # if d > 80:	# Don't decelerate when tl is more than 80m away.
+                #         #    set_v = self.target_velocity
+                #         if ((decel != 0) & (d_int <= d)):
+                #             delta_t = qe(-decel/2, v0, -d_int)
+                #             set_v = max(v0 - decel * delta_t, 0)
+                #             self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+                #         else:
+                #             set_v = 0
+                #         #rospy.logwarn('index: %s, set v: %s', i, set_v)
+                #         self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+                # for i in range(len(self.final_waypoints.waypoints)):
+                for i, wp_index in enumerate(next_indices):
+                    d = distance(self.waypoints, wp_index, self.tw_id)
+                    decel = v0 * v0 / 2 * d
+                    if decel > self.min_decel:
+                        target_velocity = math.sqrt(d*2*decel)
                     else:
-                        decel = 0
-                    rospy.loginfo('deceleration: %s', decel)
+                        target_velocity = self.target_velocity
+                    
+                    self.set_waypoint_velocity(self.final_waypoints.waypoints, i, target_velocity)
 
-                    for i in range(len(self.final_waypoints.waypoints)):
-                        # distance from closest id to the point where set the vehicle speed this time.
-                        if (self.tw_id - self.closest != 0):
-                            d_int = d / (self.tw_id - self.closest) * i
-                        else:
-                            d_int = 0
-
-                        # Solve the quadratic equation to find the time required to travel
-                        # a certain distance.
-                        # if d > 80:	# Don't decelerate when tl is more than 80m away.
-                        #    set_v = self.target_velocity
-                        if ((decel != 0) & (d_int <= d)):
-                            delta_t = qe(-decel/2, v0, -d_int)
-                            set_v = max(v0 - decel * delta_t, 0)
-                            self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
-                        else:
-                            set_v = 0
-                        #rospy.logwarn('index: %s, set v: %s', i, set_v)
-                        self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
             else:
                 # Accelerate to set speed.
                 for i in range(len(self.final_waypoints.waypoints)):
@@ -269,17 +313,6 @@ class WaypointUpdater(object):
 
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
-        
-    def distance(self, waypoints, wp1, wp2):
-        # TODO: Returns distance between waypoints indexed wp1 and wp2
-        # Calculate distance along path
-        dist = 0
-        dl = lambda a, b: math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2)
-        for i in range(wp1, wp2 + 1):
-            dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
-            wp1 = i
-
-        return dist
 
     def chk_stp(self, v_init, dist):
         # Determine whether or not we can stop under the limit deceleration.
