@@ -31,6 +31,20 @@ def distance_xyz(a, b):
     return np.sqrt((a.position.x - b.position.x)**2 + (a.position.y - b.position.y)**2 + + (a.position.z - b.position.z)**2)
 
 
+def distance_ahead(ref_wp, wp):
+    """Return the distance of wp relative to ref_wp in the ref_wp reference frame."""
+
+    dx = wp.position.x - ref_wp.position.x
+    dy = wp.position.y - ref_wp.position.y
+    quaternion = [ref_wp.orientation.x, ref_wp.orientation.y, ref_wp.orientation.z, ref_wp.orientation.w]
+    roll, pitch, yaw = tf.transformations.euler_from_quaternion(quaternion)
+
+    dx_ref =  dx*math.cos(yaw) + dy*math.sin(yaw)
+    dy_ref = -dx*math.sin(yaw) + dy*math.cos(yaw)
+
+    return dx_ref, dy_ref
+
+
 def pose_list(xy_list):
         """Returns a list of Pose objects given an array of x, y values
         
@@ -176,17 +190,7 @@ class TLDetector(object):
         self.upcoming_light_pub.publish(traffic_light)
 
     # def get_closest_waypoint(self, pose):
-    #     """Identifies the closest path waypoint to the given position.
-        
-    #     https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
-        
-    #     Args:
-    #         pose (Pose): position to match a waypoint to
-
-    #     Returns:
-    #         int: index of the closest waypoint in self.waypoints
-
-    #     """
+    #     
 
     #     #TODO implement - Done
     #     # Iterate the base_waypoints' x value with current position's x value and find the closest
@@ -383,14 +387,20 @@ class TLDetector(object):
 
         car_pose = self.pose.pose
 
-        min_dist = 100 # Find traffic lights within this distance
+        # Find traffic lights within this distance in the vehicle ref frame
+        min_dx = 100 
+        min_dy = 20  
+
         closest_light_pose = None
         for light in self.lights:
             light_pose = light.pose.pose
-            dist = distance_xy(light_pose, car_pose)
+            dx, dy = distance_ahead(car_pose, light_pose)
 
-            if dist < min_dist:
-                min_dist = dist
+            # If the light is ahead of vehicle, less than previously know minimum x dist
+            # and less than a lateral distance threshold (don't detect lights that are 
+            # very far away laterally)
+            if dx < min_dx and dy < min_dy and dx > 0:
+                min_dx = dx
                 closest_light_pose = light_pose
                 closest_light_state = light.state
         
@@ -399,7 +409,10 @@ class TLDetector(object):
             min_dist = 50 # Find closest lightstop within this distance
             for i, lightstop_pose in enumerate(self.lightstops_pose):
                 dist = distance_xy(lightstop_pose, closest_light_pose)
-                if dist < min_dist:
+                dx, dy = distance_ahead(car_pose, lightstop_pose)
+                # If this lightstop is the closest one so far to the light stop
+                # and it's ahead of the car...
+                if dist < min_dist and dx > 0:
                     min_dist = dist
                     closest_lightstop_pose = lightstop_pose
                     closest_lightstop_wp_index = self.lightstops_wp_index[i]
