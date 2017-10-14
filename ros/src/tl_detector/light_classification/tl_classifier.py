@@ -72,7 +72,5 @@ class TLClassifier(object):
                 self.current_light = TrafficLight.YELLOW
             elif classes[0] == 3:
                 self.current_light = TrafficLight.GREEN
-            else:
-                rospy.logerror('Unrecognized traffic light class detection')
             
         return self.current_light
