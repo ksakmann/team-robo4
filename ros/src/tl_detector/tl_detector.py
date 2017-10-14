@@ -391,7 +391,7 @@ class TLDetector(object):
         
         if closest_light_pose: # If a light was found let's find the closest stop
             rospy.loginfo('Traffic light found %d m away', min_dist)
-            min_dist = 30 # Find closest lightstop within this distance
+            min_dist = 50 # Find closest lightstop within this distance
             for i, lightstop_pose in enumerate(self.lightstops_pose):
                 dist = distance_xy(lightstop_pose, closest_light_pose)
                 if dist < min_dist:

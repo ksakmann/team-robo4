@@ -31,11 +31,11 @@ class TLClassifier(object):
             # Create a reusable sesion attribute
             self.sess = tf.Session(graph=self.detection_graph, config=config)
 
-        self.image_tensor      = self.detection_graph.get_tensor_by_name('image_tensor:0')
-        self.detection_boxes   = self.detection_graph.get_tensor_by_name('detection_boxes:0')
-        self.detection_scores  = self.detection_graph.get_tensor_by_name('detection_scores:0')
+        self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
+        self.detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+        self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
         self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
-        self.num_detections    = self.detection_graph.get_tensor_by_name('num_detections:0')
+        self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -70,7 +70,7 @@ class TLClassifier(object):
                 self.current_light = TrafficLight.RED
             elif classes[0] == 2:
                 self.current_light = TrafficLight.YELLOW
-            elif classis[0] == 3:
+            elif classes[0] == 3:
                 self.current_light = TrafficLight.GREEN
             else:
                 rospy.logerror('Unrecognized traffic light class detection')
