@@ -283,10 +283,10 @@ class WaypointUpdater(object):
 
     def chk_stp(self, v_init, dist):
         # Determine whether or not we can stop under the limit deceleration.
-        stp_t = v_init / self.accel_limit
-        d_stp = v_init * stp_t - self.accel_limit * stp_t * stp_t / 2
+        min_stopping_distance = v_init*v_init / (2*self.accel_limit)
 
-        if d_stp>dist:
+        if min_stopping_distance > dist:
+            rospy.logwarn("Can't stop in time!")
             return False
         else:
             return True
