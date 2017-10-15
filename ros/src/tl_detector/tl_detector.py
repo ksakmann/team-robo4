@@ -65,7 +65,7 @@ def pose_list(xy_list):
 
 class TLDetector(object):
     def __init__(self):
-        rospy.init_node('tl_detector')
+        rospy.init_node('tl_detector', log_level=rospy.DEBUG)
 
         self.pose = None
         self.waypoints = None
@@ -374,7 +374,7 @@ class TLDetector(object):
         light_state, closest_lightstop_wp_index = self.get_light_state()
         light_pose_gt, closest_lightstop_wp_index_gt, light_state_gt = self.get_light_state_ground_truth()
 
-        rospy.loginfo('Classified light state: %d, ground truth light state: %d', light_state, light_state_gt)
+        rospy.logdebug('Classified light state: %d, ground truth light state: %d', light_state, light_state_gt)
 
         return light_state, closest_lightstop_wp_index, light_state_gt, closest_lightstop_wp_index_gt, light_pose_gt
 

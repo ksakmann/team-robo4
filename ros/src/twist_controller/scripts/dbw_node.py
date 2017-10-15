@@ -37,7 +37,7 @@ that we have created in the `__init__` function.
 
 class DBWNode(object):
     def __init__(self):
-        rospy.init_node('dbw_node',  log_level=rospy.DEBUG)
+        rospy.init_node('dbw_node', log_level=rospy.DEBUG)
 
         rospy.logdebug('DBW Initialization')
 
