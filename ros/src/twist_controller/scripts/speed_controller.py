@@ -6,12 +6,13 @@ ONE_MPH = 0.44704
 
 class SpeedController(object):
     def __init__(self):
-        kp = 0.25
-        ki = 0.5
+        kp_pos = 0.01
+        kp_neg = 0.25
+        ki = 0
         kd = 0
         # is_initialized = False # TODO Implement intialization (handle dt)
-        self.pid = PID(kp, ki, kd, min=-1, max=1)
-        self.v_error_braking_threshold = 2 / 3.6
+        self.pid = PID(kp_pos, kp_neg, ki, kd, min=-1, max=1)
+        self.v_error_braking_threshold = 2 * 1.6 / 3.6
 
     def control(self, demand, x, time_step):
         error = demand - x
@@ -24,7 +25,7 @@ class SpeedController(object):
             throttle = val
         else:
             # Only brake is the velocity error is greater than threshold
-            if abs(error) > self.v_error_braking_threshold:
+            if abs(error) > self.v_error_braking_threshold and x > self.v_error_braking_threshold:
                 brake = -val
 
         return throttle, brake

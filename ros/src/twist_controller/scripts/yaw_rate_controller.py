@@ -10,7 +10,7 @@ class YawRateController(object):
         kp = 0
         ki = 0
         kd = 0
-        self.pid = PID(kp, ki, kd, min=-self.max_angle_steer, max=self.max_angle_steer)
+        self.pid = PID(kp, kp, ki, kd, min=-self.max_angle_steer, max=self.max_angle_steer)
 
     def feedforward_contol(self, v_car, n_yaw):
         if v_car > 0:

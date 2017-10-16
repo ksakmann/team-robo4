@@ -3,8 +3,9 @@ MAX_NUM = float('inf')
 
 
 class PID(object):
-    def __init__(self, kp, ki, kd, min=MIN_NUM, max=MAX_NUM):
-        self.kp = kp
+    def __init__(self, kp_pos, kp_neg, ki, kd, min=MIN_NUM, max=MAX_NUM):
+        self.kp_pos = kp_pos
+        self.kp_neg = kp_neg
         self.ki = ki
         self.kd = kd
         self.min = min
@@ -26,7 +27,10 @@ class PID(object):
         i_error = self.i_error + self.error * sample_time;
         self.d_error = (self.error - self.last_error) / sample_time;
 
-        actuator = self.kp * self.error + self.ki * self.i_error + self.kd * self.d_error;
+        if error > 0:
+            actuator = self.kp_pos * self.error + self.ki * self.i_error + self.kd * self.d_error;
+        else:
+            actuator = self.kp_neg * self.error + self.ki * self.i_error + self.kd * self.d_error;
 
         # TODO Implement anti-windup
         if actuator > self.max:

@@ -114,7 +114,7 @@ class DBWNode(object):
         tcmd = ThrottleCmd()
         tcmd.enable = True
         tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
-        tcmd.pedal_cmd = throttle
+        tcmd.pedal_cmd = throttle * 100
         self.throttle_pub.publish(tcmd)
 
         if self.speed > 0.1:
