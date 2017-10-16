@@ -20,19 +20,15 @@ Please note that our simulator also provides the exact location of traffic light
 current status in `/vehicle/traffic_lights` message. You can use this message to build this node
 as well as to verify your TL classifier.
 
-TODO (for Yousuf and Aaron): Stopline location for each traffic light.
+TODO Should we be using x, y, z for distance?
+TODO Implement distance_ahead instead of distance?
 '''
 
 
 LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
-
-
-def qe(a, b, c):
-    tmp = b*b - 4*a*c
-    if tmp < 0:
-        rospy.logerr('Attempting square root of -ve number %s', tmp)
-
-    return (math.sqrt(max(0,tmp)) - b) / (2*a)
+NOMINAL_DECCEL = 0.25 
+TARGET_VELOCITY = 20.0 * 0.4407
+STOPPING_DISTANCE_BUFFER = 2 
 
 
 def distance(waypoints, wp1, wp2):
@@ -56,17 +52,16 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane       , self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        rospy.Subscriber('/traffic_waypoint' , Int32, self.traffic_cb)
-        rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
-
+        rospy.Subscriber('/traffic_waypoint', Int32       , self.traffic_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_vel_cb)
+        # rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        # TODO: Add other member variables you need below
         self.tw_id = 0
         self.ow_id = 0
-        self.decel = 0.5
+        self.deccel = NOMINAL_DECCEL
+        self.stopping_distance_buffer = STOPPING_DISTANCE_BUFFER
         self.accel_limit = 4.0 # m/sec^2
         self.final_waypoints = Lane()
         self.current_velocity = 0
@@ -81,7 +76,7 @@ class WaypointUpdater(object):
         self.waypoints = None
         self.no_waypoints = None
         self.closest = None	# closest waypoint index to current position.
-        self.target_velocity = 20.0 * 0.4407 # target velocity is 10m/sec
+        self.target_velocity = TARGET_VELOCITY
 
         rospy.spin()
 
@@ -159,7 +154,7 @@ class WaypointUpdater(object):
         return xpp, ypp
 
     def get_closest_waypoint_index(self):
-        rospy.loginfo('x,y : %s, %s ', self.x, self.y)
+        # rospy.loginfo('x,y : %s, %s ', self.x, self.y)
 
         if self.x is None or self.y is None or self.waypoints is None:
             return
@@ -174,109 +169,124 @@ class WaypointUpdater(object):
                 distance = wp_distance
                 self.closest = ind
 
-        rospy.loginfo('closest : %s, %s ',
-                      self.waypoints[self.closest].pose.pose.position.x,
-                      self.waypoints[self.closest].pose.pose.position.y)
+        # rospy.loginfo('closest : %s, %s ',
+        #               self.waypoints[self.closest].pose.pose.position.x,
+        #               self.waypoints[self.closest].pose.pose.position.y)
 
     def waypoints_cb(self, msg):
+        rospy.loginfo("Basewaypoints set")
         self.waypoints = msg.waypoints
         self.no_waypoints = len(msg.waypoints)
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
         self.final_waypoints = self.get_next_waypoints()
         next_indices = self.get_next_waypoint_indices()
         self.tw_id = msg.data
 
-        #if self.waypoints is not None:
-        #    v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.4407 # m/s
-        #else:
-        #    v0 = self.target_velocity
-        # v0 = self.current_velocity
+        is_red_light_present = self.tw_id != -1
 
-        target_velocity = self.target_velocity
         if self.final_waypoints is not None:
-            if self.tw_id != -1:
-                rospy.logdebug("Final Waypoints: Index, Waypoint Index, Distance to Red Light, Velocity Setpoint")
+            if is_red_light_present:
                 for i, wp_index in enumerate(next_indices):
-                    d_buffer = 2 # buffer distance to stop before actua stopping distance
-                    d = distance(self.waypoints, wp_index, self.tw_id) - d_buffer
-                    # Deceleration required to stop for red light
+                    # Calculate distance to red light and factor in a safety margin buffer
+                    d = distance(self.waypoints, wp_index, self.tw_id) - self.stopping_distance_buffer
                     if d > 0:
-                        # Velocity we should be going at if we wanted to decelerate to 
-                        # stop at self.decel
-                        target_velocity_decel = math.sqrt(d*2*self.decel)
-                        target_velocity = min(target_velocity, target_velocity_decel)
+                        # velocity we could be traveling and still be able to stop at the desired rate
+                        target_velocity_deccel = math.sqrt(d*2*self.deccel) 
                     else:
-                        target_velocity = 0.0
-                    
-                    rospy.logdebug("%d, %d, %f, %f", i, wp_index, d, target_velocity)
-
+                        # traffic light is behind us
+                        target_velocity_deccel = 0.0
+                    # Finally, take the minimum from the accel profile and the cruising speed profile
+                    target_velocity = min([self.target_velocity, target_velocity_deccel])
                     self.set_waypoint_velocity(self.final_waypoints.waypoints, i, target_velocity)
-
             else:
-                # Accelerate to set speed.
-                for i in range(len(self.final_waypoints.waypoints)):
-                    #d_int = self.distance(self.waypoints, self.closest, self.closest + i)
-                    #delta_t = qe(self.accel_limit/2, v0, -d_int)
-                    #set_v = min(self.target_velocity, v0 + self.accel_limit * delta_t)
-                    # accelerate with DBW_node.
-                    set_v = self.target_velocity
-                    self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+                for i, wp_index in enumerate(next_indices):
+                    # Finally, take the minimum from the accel profile and the cruising speed profile
+                    self.set_waypoint_velocity(self.final_waypoints.waypoints, i, self.target_velocity)
+
+        # target_velocity = self.target_velocity
+        # if self.final_waypoints is not None:
+        #     if self.tw_id != -1:
+        #         rospy.logdebug("Final Waypoints: Index, Waypoint Index, Distance to Red Light, Velocity Setpoint")
+        #         for i, wp_index in enumerate(next_indices):
+        #             d_buffer = 2 # buffer distance to stop before actua stopping distance
+        #             d = distance(self.waypoints, wp_index, self.tw_id) - d_buffer
+        #             # Deceleration required to stop for red light
+        #             if d > 0:
+        #                 # Velocity we should be going at if we wanted to decelerate to 
+        #                 # stop at self.decel
+        #                 target_velocity_decel = math.sqrt(d*2*self.decel)
+        #                 target_velocity = min(target_velocity, target_velocity_decel)
+        #             else:
+        #                 target_velocity = 0.0
+                    
+        #             rospy.logdebug("%d, %d, %f, %f", i, wp_index, d, target_velocity)
+
+        #             self.set_waypoint_velocity(self.final_waypoints.waypoints, i, target_velocity)
+
+        #     else:
+        #         # Accelerate to set speed.
+        #         for i in range(len(self.final_waypoints.waypoints)):
+        #             #d_int = self.distance(self.waypoints, self.closest, self.closest + i)
+        #             #delta_t = qe(self.accel_limit/2, v0, -d_int)
+        #             #set_v = min(self.target_velocity, v0 + self.accel_limit * delta_t)
+        #             # accelerate with DBW_node.
+        #             set_v = self.target_velocity
+        #             self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
 
             # rospy.logwarn('set v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[0]))
             #if ((self.tw_id != -1) & (self.tw_id > self.closest)):
             #    rospy.logwarn('set tl v : %s', self.get_waypoint_velocity(self.final_waypoints.waypoints[self.tw_id - self.closest]))
 
-    def obstacle_cb(self, msg):
-        # TODO: Callback for /obstacle_waypoint message. We will implement it later
-        self.ow_id = msg.data
-        # TODO: Implement code to stop before the obstacle. Almost the same as traffic_cb?!
-        if self.waypoints is not None:
-            v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.44704 # mph to m/s
-        else:
-            v0 = self.target_velocity
+    # def obstacle_cb(self, msg):
+    #     # TODO: Callback for /obstacle_waypoint message. We will implement it later
+    #     self.ow_id = msg.data
+    #     # TODO: Implement code to stop before the obstacle. Almost the same as traffic_cb?!
+    #     if self.waypoints is not None:
+    #         v0 = self.get_waypoint_velocity(self.waypoints[self.closest]) * 0.44704 # mph to m/s
+    #     else:
+    #         v0 = self.target_velocity
 
-        rospy.loginfo('obstacle waypoint: %s', self.ow_id)
-        #rospy.logwarn('closest index: %s', self.closest)
-        #rospy.logwarn('initial v: %s', v0)
+    #     rospy.loginfo('obstacle waypoint: %s', self.ow_id)
+    #     #rospy.logwarn('closest index: %s', self.closest)
+    #     #rospy.logwarn('initial v: %s', v0)
 
-        if self.final_waypoints is not None:
-            if self.ow_id != -1:
-                # compute distance from current position to red tl.
-                d = self.distance(self.waypoints, self.closest, self.ow_id)
-                rospy.loginfo('obstacle distance: %s', d)
+    #     if self.final_waypoints is not None:
+    #         if self.ow_id != -1:
+    #             # compute distance from current position to red tl.
+    #             d = self.distance(self.waypoints, self.closest, self.ow_id)
+    #             rospy.loginfo('obstacle distance: %s', d)
 
-                # set deceleration value.
-                if d != 0:
-                    decel = v0 * v0 /2/d
-                else:
-                    decel = 0
-                rospy.loginfo('deceleration: %s', decel)
+    #             # set deceleration value.
+    #             if d != 0:
+    #                 decel = v0 * v0 /2/d
+    #             else:
+    #                 decel = 0
+    #             rospy.loginfo('deceleration: %s', decel)
 
-                for i in range(len(self.final_waypoints.waypoints)):
-                    # distance from closest id to the point where set the vehicle speed this time.
-                    if (self.ow_id - self.closest != 0):
-                        d_int = d / (self.ow_id - self.closest) * i
-                    else:
-                        d_int = 0
+    #             for i in range(len(self.final_waypoints.waypoints)):
+    #                 # distance from closest id to the point where set the vehicle speed this time.
+    #                 if (self.ow_id - self.closest != 0):
+    #                     d_int = d / (self.ow_id - self.closest) * i
+    #                 else:
+    #                     d_int = 0
 
-                    # Solve the quadratic equation to find the time required to travel
-                    # a certain distance.
-                    if ((decel != 0) & (d_int <= d)):
-                        delta_t = qe(-decel/2, v0, -d_int)
-                        set_v = max(v0 - decel * delta_t, 0)
-                        self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
-                    else:
-                        set_v = 0
-                    #rospy.logwarn('index: %s, set v: %s', i, set_v)
-                    self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
-            else:
-                # Accelerate to set speed.
-                for i in range(len(self.final_waypoints.waypoints)):
-                    # accelerate with DBW_node.
-                    set_v = self.target_velocity
-                    self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+    #                 # Solve the quadratic equation to find the time required to travel
+    #                 # a certain distance.
+    #                 if ((decel != 0) & (d_int <= d)):
+    #                     delta_t = qe(-decel/2, v0, -d_int)
+    #                     set_v = max(v0 - decel * delta_t, 0)
+    #                     self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+    #                 else:
+    #                     set_v = 0
+    #                 #rospy.logwarn('index: %s, set v: %s', i, set_v)
+    #                 self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
+    #         else:
+    #             # Accelerate to set speed.
+    #             for i in range(len(self.final_waypoints.waypoints)):
+    #                 # accelerate with DBW_node.
+    #                 set_v = self.target_velocity
+    #                 self.set_waypoint_velocity(self.final_waypoints.waypoints, i, set_v)
 
     def current_vel_cb(self, msg):
         self.current_velocity = msg.twist.linear.x
