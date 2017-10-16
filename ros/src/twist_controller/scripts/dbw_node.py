@@ -61,10 +61,10 @@ class DBWNode(object):
 	self.dbw_enabled = False
 
         # Publications
-        self.steer_pub                 = rospy.Publisher('/vehicle/steering_cmd' , SteeringCmd, queue_size=1)
-        self.throttle_pub              = rospy.Publisher('/vehicle/throttle_cmd' , ThrottleCmd, queue_size=1)
-        self.brake_pub                 = rospy.Publisher('/vehicle/brake_cmd'    , BrakeCmd   , queue_size=1)
-        self.speed_control_diag_pub    = rospy.Publisher('/speed_control_diag'   , ControlDiag, queue_size=1)
+        self.steer_pub              = rospy.Publisher('/vehicle/steering_cmd' , SteeringCmd, queue_size=1)
+        self.throttle_pub           = rospy.Publisher('/vehicle/throttle_cmd' , ThrottleCmd, queue_size=1)
+        self.brake_pub              = rospy.Publisher('/vehicle/brake_cmd'    , BrakeCmd   , queue_size=1)
+        self.speed_control_diag_pub = rospy.Publisher('/speed_control_diag'   , ControlDiag, queue_size=1)
 
         # Subscriptions
         self.dbw_enabled_sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool        , self.dbw_enabled_cb)
