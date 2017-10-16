@@ -1,4 +1,9 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="waypoint_updater" type="waypoint_updater.py" name="waypoint_updater" />
+    <node pkg="waypoint_updater" type="waypoint_updater.py" name="waypoint_updater">
+        <param name="nominal_decel" value="0.5" />
+        <param name="target_velocity" value="8.8889" />
+        <param name="stopping_distance_buffer" value="2" />
+        <param name="lookahead_wps" value="200" /> 
+    </node>
 </launch>

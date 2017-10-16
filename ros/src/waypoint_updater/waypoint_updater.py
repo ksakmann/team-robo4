@@ -25,12 +25,6 @@ TODO Implement distance_ahead instead of distance?
 '''
 
 
-LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
-NOMINAL_DECCEL = 0.25 
-TARGET_VELOCITY = 20.0 * 0.4407
-STOPPING_DISTANCE_BUFFER = 2 
-
-
 def distance(waypoints, wp1, wp2):
         # TODO: Returns distance between waypoints indexed wp1 and wp2
         # Calculate distance along path
@@ -60,11 +54,12 @@ class WaypointUpdater(object):
 
         self.tw_id = 0
         self.ow_id = 0
-        self.deccel = NOMINAL_DECCEL
-        self.stopping_distance_buffer = STOPPING_DISTANCE_BUFFER
+        self.deccel = rospy.get_param('~deccel', 0.25)
+        self.stopping_distance_buffer = rospy.get_param('~stopping_distance_buffer', 2)
+        self.lookahead_wps = rospy.get_param('~lookahead_wps', 200)
         self.final_waypoints = Lane()
         self.current_velocity = 0
-        self.target_velocity = TARGET_VELOCITY
+        self.target_velocity = rospy.get_param('~target_velocity', 4.4445)
 
         self.x = None
         self.y = None
@@ -114,7 +109,7 @@ class WaypointUpdater(object):
             ind = (ind + 1) % self.no_waypoints
 
         lane = Lane()
-        for i in range(LOOKAHEAD_WPS):
+        for i in range(self.lookahead_wps):
             lane.waypoints.append(self.waypoints[(ind + i) % self.no_waypoints])
 
         # rospy.logwarn('wp.pose.pose.position.x,wp.pose.pose.position.y : %s, %s', wp.pose.pose.position.x, wp.pose.pose.position.y)
@@ -135,7 +130,7 @@ class WaypointUpdater(object):
         if xpp < 0:
             ind = (ind + 1) % self.no_waypoints
 
-        indices = [i % self.no_waypoints for i in range(ind, ind + LOOKAHEAD_WPS)]  
+        indices = [i % self.no_waypoints for i in range(ind, ind + self.lookahead_wps)]  
 
         return indices
 
