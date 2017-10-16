@@ -345,7 +345,7 @@ class TLDetector(object):
         if self.light_classifier is not None:
             classified_light_state = self.light_classifier.get_classification(cv_image)
         else:
-            classified_light_state = 4
+            classified_light_state = TrafficLight.UNKNOWN
         # simulator_light_state = self.get_light_state_from_simulator(light)
 
         # if classified_light_state != simulator_light_state:
