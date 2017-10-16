@@ -54,12 +54,12 @@ class WaypointUpdater(object):
 
         self.tw_id = 0
         self.ow_id = 0
-        self.deccel = rospy.get_param('~deccel', 0.25)
-        self.stopping_distance_buffer = rospy.get_param('~stopping_distance_buffer', 2)
-        self.lookahead_wps = rospy.get_param('~lookahead_wps', 200)
+        self.deccel = rospy.get_param('~nominal_deccel')
+        self.stopping_distance_buffer = rospy.get_param('~stopping_distance_buffer')
+        self.lookahead_wps = rospy.get_param('~lookahead_wps')
         self.final_waypoints = Lane()
         self.current_velocity = 0
-        self.target_velocity = rospy.get_param('~target_velocity', 4.4445)
+        self.target_velocity = rospy.get_param('~target_velocity')
 
         self.x = None
         self.y = None

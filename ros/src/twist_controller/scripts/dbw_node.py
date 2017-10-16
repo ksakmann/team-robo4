@@ -88,14 +88,12 @@ class DBWNode(object):
             throttle, brake = self.speed_controller.control(self.speed_demand, self.speed, dt)
             steer = self.yaw_rate_controller.control(self.speed, self.yaw_rate_demand)
 
-            # TODO Consider when dbw_enable is toggled... do we need to be care about proper initialization?
             if self.dbw_enabled:
                 rospy.loginfo('Speed Demand: %f, Speed Actual: %f', self.speed_demand, self.speed)
                 rospy.loginfo('Yaw Rate Demand: %f, Yaw Rate Actual: %f', self.yaw_rate_demand, self.yaw_rate)
                 self.publish(throttle, brake, steer)
-            # Now I factor set to zero, so no need to reset.
-            #else:
-            #    self.speed_controller.reset()
+            else:
+                self.speed_controller.reset()
 
             # Diagnotics
             speed_diag           = ControlDiag()
@@ -111,11 +109,13 @@ class DBWNode(object):
 
     def publish(self, throttle, brake, steer):
         
-        tcmd = ThrottleCmd()
-        tcmd.enable = True
-        tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
-        tcmd.pedal_cmd = throttle * 100
-        self.throttle_pub.publish(tcmd)
+        # Take care not to publish both throttle and brake
+        if throttle > 0:
+            tcmd = ThrottleCmd()
+            tcmd.enable = True
+            tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
+            tcmd.pedal_cmd = throttle
+            self.throttle_pub.publish(tcmd)
 
         if self.speed > 0.1:
             scmd = SteeringCmd()
@@ -128,7 +128,7 @@ class DBWNode(object):
             bcmd = BrakeCmd()
             bcmd.enable = True
             bcmd.pedal_cmd_type = BrakeCmd.CMD_PERCENT
-            bcmd.pedal_cmd = brake * 100
+            bcmd.pedal_cmd = brake * 200
             bcmd.boo_cmd = True
             self.brake_pub.publish(bcmd)
 
