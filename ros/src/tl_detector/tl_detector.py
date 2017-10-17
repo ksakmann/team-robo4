@@ -98,6 +98,9 @@ class TLDetector(object):
         self.lightstops_wp_index = []
         self.is_lightstops_indexed = False
 
+        # Set to true to use grount truth light states otherwise use classifier
+        self.use_ground_truth = rospy.get_param("~use_ground_truth")
+
         self.light_classifier = None
         self.light_classifier = TLClassifier()
 
@@ -157,16 +160,16 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
 
-        out = self.process_traffic_lights()
-        state = out[0]
-        light_wp_index = out[1]
-        light_state_gt = out[2]
-        closest_lightstop_wp_index_gt = out[3]
-        light_pose = out[4]
+        state, closest_lightstop_wp_index = self.process_traffic_lights()
+        # state = out[0]
+        # light_wp_index = out[1]
+        # light_state_gt = out[2]
+        # closest_lightstop_wp_index_gt = out[3]
+        # light_pose = out[4]
         
         # DEVELOPMENT - remove these lines of code to use the classifier instead of ground truth
-        state = light_state_gt
-        light_wp_index = closest_lightstop_wp_index_gt
+        # state = light_state_gt
+        # light_wp_index = closest_lightstop_wp_index_gt
 
         # Publish upcoming red lights at camera frequency.
         # Each predicted state has to occur STATE_COUNT_THRESHOLD number
@@ -178,22 +181,26 @@ class TLDetector(object):
             self.state = state
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
-            light_wp_index = light_wp_index if state == TrafficLight.RED else -1
-            self.last_wp = light_wp_index
-            self.upcoming_red_light_pub.publish(Int32(light_wp_index))
+            closest_red_lightstop_wp_index = closest_lightstop_wp_index if state == TrafficLight.RED else -1
+            self.last_wp = closest_red_lightstop_wp_index
+            self.upcoming_red_light_pub.publish(Int32(closest_red_lightstop_wp_index))
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
 
         self.state_count += 1
 
-        # For debugging publish light location and color
         traffic_light = TrafficLight()
         traffic_light.header.stamp = rospy.Time.now()
         traffic_light.header.frame_id = '/world'
-        traffic_light.state = state
-        
-        if light_pose is not None:
-            traffic_light.pose.pose = light_pose
+        traffic_light.state = TrafficLight.UNKNOWN
+
+        if closest_lightstop_wp_index != -1:
+            # For visualization publish light location and color
+            # Only publish traffic light for visualization if light is red, 
+            # green or yellow, and if we found a nearby lightstop waypoint
+            traffic_light.state = state
+            light_pose = self.waypoints.waypoints[closest_lightstop_wp_index]
+            traffic_light.pose.pose = light_pose.pose.pose
 
         self.upcoming_light_pub.publish(traffic_light)
 
@@ -257,12 +264,11 @@ class TLDetector(object):
     def get_light_state_ground_truth(self):
         """Returns the state of the traffic light"""
 
-        closest_lightstop_pose = None
         closest_lightstop_wp_index = -1
         closest_light_state = TrafficLight.UNKNOWN
 
         if self.pose is None or not self.is_lightstops_indexed:
-            return closest_lightstop_pose, closest_lightstop_wp_index, closest_light_state
+            return closest_light_state, closest_lightstop_wp_index
 
         car_pose = self.pose.pose
 
@@ -293,20 +299,20 @@ class TLDetector(object):
                 # and it's ahead of the car...
                 if dist < min_dist and dx > 0:
                     min_dist = dist
-                    closest_lightstop_pose = lightstop_pose
+                    # closest_lightstop_pose = lightstop_pose
                     closest_lightstop_wp_index = self.lightstops_wp_index[i]
 
-            if closest_lightstop_pose is None:
-                pass
+            # if closest_lightstop_pose is None:
+                # pass
                 # rospy.logwarn('No stopping line was found for visible traffic light')
-            else:
-                dist_veh_to_light_stop = distance_xy(closest_lightstop_pose, car_pose)
+            # else:
+                # dist_veh_to_light_stop = distance_xy(closest_lightstop_pose, car_pose)
                 # rospy.loginfo('Traffic light stop found %d m away', dist_veh_to_light_stop)
         else:
             # rospy.loginfo('No traffic light found')
             pass
         
-        return closest_light_pose, closest_lightstop_wp_index, closest_light_state
+        return closest_light_state, closest_lightstop_wp_index
 
     def get_light_state(self):
         """Determines the current color of the traffic light
@@ -373,12 +379,12 @@ class TLDetector(object):
 
     def process_traffic_lights(self):
 
-        light_state, closest_lightstop_wp_index = self.get_light_state()
-        light_pose_gt, closest_lightstop_wp_index_gt, light_state_gt = self.get_light_state_ground_truth()
-
-        rospy.logdebug('Classified light state: %d, ground truth light state: %d', light_state, light_state_gt)
-
-        return light_state, closest_lightstop_wp_index, light_state_gt, closest_lightstop_wp_index_gt, light_pose_gt
+        if self.use_ground_truth:
+            light_state, closest_lightstop_wp_index = self.get_light_state_ground_truth()
+        else:
+            light_state, closest_lightstop_wp_index = self.get_light_state()
+        
+        return light_state, closest_lightstop_wp_index
 
 
 if __name__ == '__main__':
