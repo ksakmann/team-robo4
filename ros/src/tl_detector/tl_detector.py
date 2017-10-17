@@ -192,10 +192,13 @@ class TLDetector(object):
         traffic_light = TrafficLight()
         traffic_light.header.stamp = rospy.Time.now()
         traffic_light.header.frame_id = '/world'
-        traffic_light.state = state
+        traffic_light.state = TrafficLight.UNKNOWN
 
         if closest_lightstop_wp_index != -1:
             # For visualization publish light location and color
+            # Only publish traffic light for visualization if light is red, 
+            # green or yellow, and if we found a nearby lightstop waypoint
+            traffic_light.state = state
             light_pose = self.waypoints.waypoints[closest_lightstop_wp_index]
             traffic_light.pose.pose = light_pose.pose.pose
 
