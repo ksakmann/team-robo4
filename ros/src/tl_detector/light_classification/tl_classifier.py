@@ -52,9 +52,12 @@ class TLClassifier(object):
 
         with self.detection_graph.as_default():
             with tf.Session(graph=self.detection_graph) as sess:
+                t0 = rospy.Time.now()
                 out = self.sess.run([self.detection_boxes, self.detection_scores,
                                      self.detection_classes, self.num_detections],
                                     feed_dict={self.image_tensor: image_np_expanded})
+                dt = rospy.Time.now() - t0
+                rospy.loginfo('Classification CPU Time (s): %f', dt.to_sec())
             
         boxes, scores, classes, num = out
 
