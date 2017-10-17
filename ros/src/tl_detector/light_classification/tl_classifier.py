@@ -64,8 +64,8 @@ class TLClassifier(object):
         classes = np.squeeze(classes).astype(np.int32)
 
         self.current_light = TrafficLight.UNKNOWN
-
-        if scores is None or scores[0] > CLASSIFICATION_THRESHOLD: # If highest score is above 50% it's a hit
+        print(scores[0])
+        if scores is not None and scores[0] > CLASSIFICATION_THRESHOLD: # If highest score is above 50% it's a hit
             if classes[0] == 1:
                 self.current_light = TrafficLight.RED
             elif classes[0] == 2:
