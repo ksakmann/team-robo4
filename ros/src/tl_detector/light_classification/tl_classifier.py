@@ -58,7 +58,7 @@ class TLClassifier(object):
                                     feed_dict={self.image_tensor: image_np_expanded})
                 dt = rospy.Time.now() - t0
                 rospy.loginfo('Classification CPU Time (s): %f', dt.to_sec())
-            
+
         boxes, scores, classes, num = out
 
         # create np arrays
