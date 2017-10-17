@@ -52,10 +52,13 @@ class TLClassifier(object):
 
         with self.detection_graph.as_default():
             with tf.Session(graph=self.detection_graph) as sess:
+                t0 = rospy.Time.now()
                 out = self.sess.run([self.detection_boxes, self.detection_scores,
                                      self.detection_classes, self.num_detections],
                                     feed_dict={self.image_tensor: image_np_expanded})
-            
+                dt = rospy.Time.now() - t0
+                rospy.loginfo('Classification CPU Time (s): %f', dt.to_sec())
+
         boxes, scores, classes, num = out
 
         # create np arrays
@@ -64,7 +67,7 @@ class TLClassifier(object):
         classes = np.squeeze(classes).astype(np.int32)
 
         self.current_light = TrafficLight.UNKNOWN
-        print(scores[0])
+
         if scores is not None and scores[0] > CLASSIFICATION_THRESHOLD: # If highest score is above 50% it's a hit
             if classes[0] == 1:
                 self.current_light = TrafficLight.RED
