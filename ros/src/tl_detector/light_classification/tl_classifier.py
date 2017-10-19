@@ -41,14 +41,14 @@ class TLClassifier(object):
         self.path = './light_classification/UTL_label_map.pbtxt'
         print(self.path)
 
-	#PATH_TO_LABELS = '/home/manisha/src/robo4/robo4-carnd-capstone/ros/src/tl_detector/light_classification/UTL_label_map.pbtxt'
-	PATH_TO_LABELS = self.path
+        #PATH_TO_LABELS = '/home/manisha/src/robo4/robo4-carnd-capstone/ros/src/tl_detector/light_classification/UTL_label_map.pbtxt'
+        PATH_TO_LABELS = self.path
         NUM_CLASSES = 3
 
         label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
         categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
         self.category_index = label_map_util.create_category_index(categories)
-	self.count = 1
+        self.count = 1
 
 
     def get_classification(self, image):
@@ -61,9 +61,11 @@ class TLClassifier(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-
+        image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
         image_np_expanded = np.expand_dims(image, axis=0)
         #rospy.logwarn('path %s', self.path)
+
+
 
         with self.detection_graph.as_default():
             with tf.Session(graph=self.detection_graph) as sess:
@@ -81,13 +83,13 @@ class TLClassifier(object):
         scores = np.squeeze(scores)
         classes = np.squeeze(classes).astype(np.int32)
 
-	vis_util.visualize_boxes_and_labels_on_image_array(
+        vis_util.visualize_boxes_and_labels_on_image_array(
            image, boxes, classes, scores,
            self.category_index,
            use_normalized_coordinates=True,
            line_thickness=4)
         
-	if not (os.path.exists("./tl_images_infer")):
+        if not (os.path.exists("./tl_images_infer")):
                 os.mkdir("./tl_images_infer")
         cv2.imwrite("./tl_images_infer/infer_image{}.jpeg".format(self.count), image)
         self.count += 1
