@@ -24,5 +24,5 @@ def splitfile(filename, directory, chunksize=chunksize, maxchunks=maxchunks):
             if len(chunk) == 0:
                 exit()
 
-splitfile('G:\\CarND\\ObjectDetection\\Data_prep\\Images_site\\Fzmodel\\fz_models\\frozen_inference_graph.pb', 
-'G:\\CarND\\ObjectDetection\\Data_prep\\Images_site\\Fzmodel\\frozen_model_chunks')
+splitfile('/home/ks/robo4-carnd-capstone/classifier/models/rfcn_resnet101_sim/exported_model_dir/frozen_inference_graph.pb',
+'/home/ks/robo4-carnd-capstone/classifier/models/rfcn_resnet101_sim/exported_model_dir/frozen_model_chunks')

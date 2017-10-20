@@ -90,9 +90,9 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
-        self.save_images = False
+        self.save_images = True
         self.saved_image_counter = 1
-        self.saved_image_limit = 100
+        self.saved_image_limit = 500
         
         self.lightstops_pose = pose_list(self.config['stop_line_positions'])
         self.lightstops_wp_index = []
@@ -328,11 +328,9 @@ class TLDetector(object):
             self.prev_light_loc = None
             return False
 
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
 
-        #TODO use light location to zoom in on traffic light in image
         # rospy.logwarn(len(cv_image))
-        cv_image = cv_image[201:600, :, :]
         # output image will be of size 800x400
 
         # save 100 images for training purposes
@@ -341,7 +339,7 @@ class TLDetector(object):
             rospy.loginfo('saving images')
             if not (os.path.exists("./tl_images")):
                 os.mkdir("./tl_images")
-            cv2.imwrite("./tl_images/image{}.jpg".format(self.saved_image_counter), cv_image)
+            cv2.imwrite("./tl_images/image{0:0>4}.jpeg".format(self.saved_image_counter), cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR))
             self.saved_image_counter += 1
 
         # x, y = self.project_to_image_plane(light.pose.pose.position)

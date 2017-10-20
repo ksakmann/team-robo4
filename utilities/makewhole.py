@@ -26,6 +26,6 @@ def joinfiles(directory, filename, chunksize=chunksize):
                     
         output.close()
 
-joinfiles('G:\\CarND\\ObjectDetection\\Data_prep\\Images_site\\Fzmodel\\frozen_model_chunks', 
-'G:\\CarND\\ObjectDetection\\Data_prep\\Images_site\\Fzmodel\\Reconstruct\\frozen_inference_graph.pb')
+joinfiles('/home/ks/robo4-carnd-capstone/classifier/models/rfcn_resnet_site_sim/frozen_model_chunks',
+'/home/ks/robo4-carnd-capstone/classifier/models/rfcn_resnet_site_sim/frozen_inference_graph.pb')
 print( "Done!")
