@@ -90,7 +90,7 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
-        self.save_images = True
+        self.save_images = rospy.get_param("~save_image", False)
         self.saved_image_counter = 1
         self.saved_image_limit = 500
         
