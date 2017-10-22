@@ -1,4 +1,4 @@
-This the project repo for the System Integration project of Term-3 Udacity Self-Driving Car Nanodegree:
+This is the project repo for the System Integration project of Term-3 Udacity Self-Driving Car Nanodegree:
 
 #### Team Name: Robo4
 
