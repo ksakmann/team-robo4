@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
     <node pkg="tl_detector" type="tl_detector.py" name="tl_detector" output="screen" cwd="node">
-        <param name="model" value="$(find tl_detector)../../../classifier/models/ssd_mobilenet_v1_coco_simulator/exported_model_dir/frozen_inference_graph.pb" />
+        <param name="model" value="$(find tl_detector)../../../classifier/models/rfcn_resnet_site_sim/frozen_inference_graph.pb" />
         <param name="use_ground_truth" value="False" />
         <param name="save_image" value="False" />
     </node>
