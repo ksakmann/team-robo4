@@ -7,6 +7,7 @@ import label_map_util
 import visualization_utils as vis_util
 import os
 import cv2
+from functools import partial
 
 CLASSIFICATION_THRESHOLD = 0.5  # Value above which classiciation is a hit
 
@@ -19,11 +20,26 @@ class TLClassifier(object):
         self.save_images = True
         self.current_light = TrafficLight.UNKNOWN
         self.model_path = rospy.get_param('~model')
+        self.readsize = 1024
 
         # Build the model
         self.detection_graph = tf.Graph()
         # create config
         config = tf.ConfigProto()
+
+        # reassemble the model from chunks. credit goes to team vulture for this idea
+        if not os.path.exists(self.model_path):
+            if not os.path.exists(self.model_path+'/chunks'):
+                output = open(self.model_path, 'wb')
+                frozen_model_path = os.path.dirname(self.model_path)+'/frozen_model_chunks'
+                chunks = os.listdir(frozen_model_path)
+                chunks.sort()
+                for filename in chunks:
+                    filepath = os.path.join(frozen_model_path, filename)
+                    with open(filepath, 'rb') as fileobj:
+                        for chunk in iter(partial(fileobj.read, self.readsize), ''):
+                            output.write(chunk)
+                output.close()
 
         # Create the graph
         with self.detection_graph.as_default():
