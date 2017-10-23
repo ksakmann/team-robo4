@@ -128,6 +128,11 @@ class DBWNode(object):
             bcmd = BrakeCmd()
             bcmd.enable = True
             bcmd.pedal_cmd_type = BrakeCmd.CMD_PERCENT
+            # It's uncertain what these units should be. It looks like
+            # CMD_PERCENT is 0-1 for ThrottleCmd but 0-100 for BrakeCmd
+            # Further it looks like 100% is not a lot of braking at all
+            # So I've doubled that amount here to have a moderate amount 
+            # of braking as observed in the simulator
             bcmd.pedal_cmd = brake * 200
             bcmd.boo_cmd = True
             self.brake_pub.publish(bcmd)
