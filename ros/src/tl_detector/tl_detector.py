@@ -72,13 +72,17 @@ class TLDetector(object):
         self.camera_image = None
         self.lights = []
 
+        config_string = rospy.get_param("/traffic_light_config")
+        self.config = yaml.load(config_string)
+
+        self.lightstops_pose = pose_list(self.config['stop_line_positions'])
+        self.lightstops_wp_index = []
+        self.is_lightstops_indexed = False
+
         self.pose_sub    = rospy.Subscriber('/current_pose'          , PoseStamped      , self.pose_cb)
         self.wp_sub      = rospy.Subscriber('/base_waypoints'        , Lane             , self.waypoints_cb)
         self.traffic_sub = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
         self.img_sub     = rospy.Subscriber('/image_color'           , Image            , self.image_cb)        
-
-        config_string = rospy.get_param("/traffic_light_config")
-        self.config = yaml.load(config_string)
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint'  , Int32       , queue_size=1)
         self.upcoming_light_pub     = rospy.Publisher('/traffic_waypoint_2', TrafficLight, queue_size=1)
@@ -93,10 +97,6 @@ class TLDetector(object):
         self.save_images = rospy.get_param("~save_image", False)
         self.saved_image_counter = 1
         self.saved_image_limit = 500
-        
-        self.lightstops_pose = pose_list(self.config['stop_line_positions'])
-        self.lightstops_wp_index = []
-        self.is_lightstops_indexed = False
 
         # Set to true to use grount truth light states otherwise use classifier
         self.use_ground_truth = rospy.get_param("~use_ground_truth")
