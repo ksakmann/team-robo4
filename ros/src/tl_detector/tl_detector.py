@@ -11,7 +11,7 @@ import rospy
 from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped, Pose
 from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
+from cv_bridge import CvBridge,CvBridgeError
 
 from styx_msgs.msg import TrafficLightArray, TrafficLight
 from styx_msgs.msg import Lane
@@ -79,6 +79,7 @@ class TLDetector(object):
         self.lightstops_wp_index = []
         self.is_lightstops_indexed = False
 
+        self.image_pub = rospy.Publisher("image_classified", Image)
         self.pose_sub    = rospy.Subscriber('/current_pose'          , PoseStamped      , self.pose_cb)
         self.wp_sub      = rospy.Subscriber('/base_waypoints'        , Lane             , self.waypoints_cb)
         self.traffic_sub = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
@@ -327,8 +328,10 @@ class TLDetector(object):
         if(not self.has_image):
             self.prev_light_loc = None
             return False
-
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
+        except CvBridgeError as e:
+            print(e)
 
         # rospy.logwarn(len(cv_image))
         # output image will be of size 800x400
@@ -349,7 +352,10 @@ class TLDetector(object):
         if self.light_classifier is not None:
             classified_light_state = self.light_classifier.get_classification(cv_image)
         else:
+            rospy.loginfo('light_classifier is None')
             classified_light_state = TrafficLight.UNKNOWN
+
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "rgb8"))
         # simulator_light_state = self.get_light_state_from_simulator(light)
 
         # if classified_light_state != simulator_light_state:
