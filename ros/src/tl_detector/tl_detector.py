@@ -71,6 +71,7 @@ class TLDetector(object):
         self.waypoints = None
         self.camera_image = None
         self.lights = []
+        self.busy = False
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -79,7 +80,7 @@ class TLDetector(object):
         self.lightstops_wp_index = []
         self.is_lightstops_indexed = False
 
-        self.image_pub = rospy.Publisher("image_classified", Image)
+        self.image_pub = rospy.Publisher("image_classified_new", Image)
         self.pose_sub    = rospy.Subscriber('/current_pose'          , PoseStamped      , self.pose_cb)
         self.wp_sub      = rospy.Subscriber('/base_waypoints'        , Lane             , self.waypoints_cb)
         self.traffic_sub = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
@@ -101,6 +102,9 @@ class TLDetector(object):
 
         # Set to true to use grount truth light states otherwise use classifier
         self.use_ground_truth = rospy.get_param("~use_ground_truth")
+
+        self.previous_light_state = self.state
+        self.previous_closest_lightstop_wp_index = self.last_wp
 
         self.light_classifier = None
         self.light_classifier = TLClassifier()
@@ -325,7 +329,8 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        if(not self.has_image):
+
+        if not self.has_image:
             self.prev_light_loc = None
             return False
         try:
@@ -354,8 +359,11 @@ class TLDetector(object):
         else:
             rospy.loginfo('light_classifier is None')
             classified_light_state = TrafficLight.UNKNOWN
+        try:
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "rgb8"))
+        except CvBridgeError as e:
+            print(e)
 
-        self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "rgb8"))
         # simulator_light_state = self.get_light_state_from_simulator(light)
 
         # if classified_light_state != simulator_light_state:
@@ -386,7 +394,14 @@ class TLDetector(object):
         if self.use_ground_truth:
             light_state, closest_lightstop_wp_index = self.get_light_state_ground_truth()
         else:
-            light_state, closest_lightstop_wp_index = self.get_light_state()
+            if not self.busy:
+                self.busy = True
+                light_state, closest_lightstop_wp_index = self.get_light_state()
+                self.previous_light_state = light_state
+                self.previous_closest_lightstop_wp_index = closest_lightstop_wp_index
+                self.busy = False
+            else:
+                light_state, closest_lightstop_wp_index = self.previous_light_state,self.previous_closest_lightstop_wp_index
         
         return light_state, closest_lightstop_wp_index
 
